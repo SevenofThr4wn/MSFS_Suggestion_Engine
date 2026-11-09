@@ -1,0 +1,122 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* FlightEngine uses a single, dark theme. Keep all design tokens here. */
+:root,
+.dark {
+  color-scheme: dark;
+  --radius: 0.75rem;
+  --background: #090e18;
+  --foreground: #eef4ff;
+  --card: #111a2a;
+  --card-foreground: #eef4ff;
+  --popover: #152237;
+  --popover-foreground: #eef4ff;
+  --primary: #4f91ec;
+  --primary-foreground: #ffffff;
+  --secondary: #1b2a40;
+  --secondary-foreground: #dbeafe;
+  --muted: #172438;
+  --muted-foreground: #92a5bf;
+  --accent: #25466e;
+  --accent-foreground: #e8f2ff;
+  --destructive: #ef6975;
+  --border: #29384d;
+  --input: #34465b;
+  --ring: #6aa8ff;
+  --chart-1: #4f91ec;
+  --chart-2: #64d7a2;
+  --chart-3: #e5b773;
+  --chart-4: #a78bfa;
+  --chart-5: #79c8db;
+  --sidebar: #0d1421;
+  --sidebar-foreground: #c1d0e5;
+  --sidebar-primary: #3978ed;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #203453;
+  --sidebar-accent-foreground: #e0eeff;
+  --sidebar-border: #25354a;
+  --sidebar-ring: #6aa8ff;
+
+  /* Compatibility tokens for custom FlightEngine visuals. */
+  --bg: var(--background);
+  --panel: var(--card);
+  --panel2: #151f30;
+  --text: var(--foreground);
+  --green: #64d7a2;
+  --red: #ff828a;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), Arial, Helvetica, sans-serif;
+  --font-heading: var(--font-inter), Arial, Helvetica, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply min-h-screen bg-background text-foreground antialiased;
+  }
+}
+
+@layer components {
+  .flightengine-surface {
+    @apply rounded-xl border border-border bg-card text-card-foreground;
+  }
+  .flightengine-input {
+    @apply h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20;
+  }
+  .flightengine-section-heading {
+    @apply text-xs font-semibold tracking-wide text-foreground;
+  }
+}
+
+[hidden] {
+  display: none !important;
+}

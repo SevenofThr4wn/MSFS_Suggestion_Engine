@@ -1,0 +1,362 @@
+from sqlalchemy import select
+
+from app.db.session import SessionLocal
+from app.db.models.aircraft import Aircraft
+
+
+AIRCRAFT_DATA = [
+    {
+        "manufacturer": "Airbus",
+        "model": "A380",
+        "variant": "-800",
+        "icao_code": "A388",
+        "category": "wide_body",
+        "range_nm": 8000,
+        "cruise_speed_kts": 490,
+        "takeoff_distance_m": 3000,
+        "landing_distance_m": 2100,
+        "is_owned": True,
+        "addon_developer": "iniBuilds",
+    },
+    {
+        "manufacturer": "Airbus",
+        "model": "A350",
+        "variant": "-900",
+        "icao_code": "A359",
+        "category": "wide_body",
+        "range_nm": 8100,
+        "cruise_speed_kts": 488,
+        "takeoff_distance_m": 2700,
+        "landing_distance_m": 1900,
+        "is_owned": True,
+    },
+    {
+        "manufacturer": "Airbus",
+        "model": "A350",
+        "variant": "-1000",
+        "icao_code": "A35K",
+        "category": "wide_body",
+        "range_nm": 8700,
+        "cruise_speed_kts": 488,
+        "takeoff_distance_m": 2900,
+        "landing_distance_m": 2000,
+        "is_owned": True,
+    },
+    {
+        "manufacturer": "Airbus",
+        "model": "A330",
+        "variant": "-300",
+        "icao_code": "A333",
+        "category": "wide_body",
+        "range_nm": 6350,
+        "cruise_speed_kts": 470,
+        "takeoff_distance_m": 2500,
+        "landing_distance_m": 1800,
+        "is_owned": True,
+    },
+    {
+        "manufacturer": "Boeing",
+        "model": "777",
+        "variant": "-300ER",
+        "icao_code": "B77W",
+        "category": "wide_body",
+        "range_nm": 7370,
+        "cruise_speed_kts": 490,
+        "takeoff_distance_m": 3000,
+        "landing_distance_m": 2100,
+        "is_owned": True,
+        "addon_developer": "PMDG",
+    },
+    {
+        "manufacturer": "Airbus",
+        "model": "A340",
+        "variant": "-300",
+        "icao_code": "A343",
+        "category": "wide_body",
+        "range_nm": 7300,
+        "cruise_speed_kts": 470,
+        "takeoff_distance_m": 2900,
+        "landing_distance_m": 2000,
+        "is_owned": True,
+        "addon_developer": "iniBuilds",
+    },
+    {
+        "manufacturer": "Boeing",
+        "model": "737",
+        "variant": "MAX 8",
+        "icao_code": "B38M",
+        "category": "narrow_body",
+        "range_nm": 3500,
+        "cruise_speed_kts": 450,
+        "takeoff_distance_m": 2200,
+        "landing_distance_m": 1600,
+        "is_owned": True,
+    },
+    {
+        "manufacturer": "Airbus",
+        "model": "A319",
+        "variant": "-100",
+        "icao_code": "A319",
+        "category": "narrow_body",
+        "range_nm": 3750,
+        "cruise_speed_kts": 450,
+        "takeoff_distance_m": 1900,
+        "landing_distance_m": 1450,
+        "is_owned": False,
+        "addon_developer": "Fenix Simulations",
+    },
+    {
+        "manufacturer": "Airbus",
+        "model": "A320",
+        "variant": "-200",
+        "icao_code": "A320",
+        "category": "narrow_body",
+        "range_nm": 3350,
+        "cruise_speed_kts": 450,
+        "takeoff_distance_m": 2100,
+        "landing_distance_m": 1500,
+        "is_owned": False,
+        "addon_developer": "Fenix Simulations",
+    },
+    {
+        "manufacturer": "Airbus",
+        "model": "A320",
+        "variant": "neo",
+        "icao_code": "A20N",
+        "category": "narrow_body",
+        "range_nm": 3450,
+        "cruise_speed_kts": 450,
+        "takeoff_distance_m": 2200,
+        "landing_distance_m": 1550,
+        "is_owned": False,
+    },
+    {
+        "manufacturer": "Airbus",
+        "model": "A321",
+        "variant": "-200",
+        "icao_code": "A321",
+        "category": "narrow_body",
+        "range_nm": 3200,
+        "cruise_speed_kts": 450,
+        "takeoff_distance_m": 2300,
+        "landing_distance_m": 1650,
+        "is_owned": False,
+        "addon_developer": "Fenix Simulations",
+    },
+    {
+        "manufacturer": "Airbus",
+        "model": "A321",
+        "variant": "neo",
+        "icao_code": "A21N",
+        "category": "narrow_body",
+        "range_nm": 4000,
+        "cruise_speed_kts": 450,
+        "takeoff_distance_m": 2400,
+        "landing_distance_m": 1700,
+        "is_owned": False,
+    },
+    {
+        "manufacturer": "Boeing",
+        "model": "787",
+        "variant": "-8",
+        "icao_code": "B788",
+        "category": "wide_body",
+        "range_nm": 8000,
+        "cruise_speed_kts": 488,
+        "takeoff_distance_m": 2700,
+        "landing_distance_m": 1800,
+        "is_owned": False,
+    },
+    {
+        "manufacturer": "Boeing",
+        "model": "787",
+        "variant": "-9",
+        "icao_code": "B789",
+        "category": "wide_body",
+        "range_nm": 8300,
+        "cruise_speed_kts": 488,
+        "takeoff_distance_m": 2900,
+        "landing_distance_m": 1900,
+        "is_owned": False,
+    },
+    {
+        "manufacturer": "Boeing",
+        "model": "787",
+        "variant": "-10",
+        "icao_code": "B78X",
+        "category": "wide_body",
+        "range_nm": 7500,
+        "cruise_speed_kts": 488,
+        "takeoff_distance_m": 3100,
+        "landing_distance_m": 2000,
+        "is_owned": False,
+    },
+    {
+        "manufacturer": "Embraer",
+        "model": "E170",
+        "variant": "",
+        "icao_code": "E170",
+        "category": "regional_jet",
+        "range_nm": 2150,
+        "cruise_speed_kts": 440,
+        "takeoff_distance_m": 1650,
+        "landing_distance_m": 1300,
+        "is_owned": False,
+    },
+    {
+        "manufacturer": "Embraer",
+        "model": "E175",
+        "variant": "",
+        "icao_code": "E75L",
+        "category": "regional_jet",
+        "range_nm": 2200,
+        "cruise_speed_kts": 440,
+        "takeoff_distance_m": 1700,
+        "landing_distance_m": 1300,
+        "is_owned": False,
+    },
+    {
+        "manufacturer": "Embraer",
+        "model": "E190",
+        "variant": "",
+        "icao_code": "E190",
+        "category": "regional_jet",
+        "range_nm": 2450,
+        "cruise_speed_kts": 445,
+        "takeoff_distance_m": 1850,
+        "landing_distance_m": 1400,
+        "is_owned": False,
+    },
+    {
+        "manufacturer": "Embraer",
+        "model": "E195",
+        "variant": "",
+        "icao_code": "E195",
+        "category": "regional_jet",
+        "range_nm": 2300,
+        "cruise_speed_kts": 445,
+        "takeoff_distance_m": 1950,
+        "landing_distance_m": 1450,
+        "is_owned": False,
+    },
+    {
+        "manufacturer": "Embraer",
+        "model": "E190",
+        "variant": "-E2",
+        "icao_code": "E290",
+        "category": "regional_jet",
+        "range_nm": 2850,
+        "cruise_speed_kts": 450,
+        "takeoff_distance_m": 1900,
+        "landing_distance_m": 1350,
+        "is_owned": False,
+    },
+    {
+        "manufacturer": "Embraer",
+        "model": "E195",
+        "variant": "-E2",
+        "icao_code": "E295",
+        "category": "regional_jet",
+        "range_nm": 2600,
+        "cruise_speed_kts": 450,
+        "takeoff_distance_m": 1800,
+        "landing_distance_m": 1300,
+        "is_owned": False,
+    },
+    {
+        "manufacturer": "Bombardier",
+        "model": "CRJ",
+        "variant": "700",
+        "icao_code": "CRJ7",
+        "category": "regional_jet",
+        "range_nm": 1380,
+        "cruise_speed_kts": 430,
+        "takeoff_distance_m": 1900,
+        "landing_distance_m": 1450,
+        "is_owned": False,
+    },
+    {
+        "manufacturer": "Bombardier",
+        "model": "CRJ",
+        "variant": "900",
+        "icao_code": "CRJ9",
+        "category": "regional_jet",
+        "range_nm": 1550,
+        "cruise_speed_kts": 435,
+        "takeoff_distance_m": 2000,
+        "landing_distance_m": 1500,
+        "is_owned": False,
+    },
+    {
+        "manufacturer": "Bombardier",
+        "model": "CRJ",
+        "variant": "1000",
+        "icao_code": "CRJX",
+        "category": "regional_jet",
+        "range_nm": 1630,
+        "cruise_speed_kts": 435,
+        "takeoff_distance_m": 2150,
+        "landing_distance_m": 1550,
+        "is_owned": False,
+    },
+    {
+        "manufacturer": "Airbus",
+        "model": "A220",
+        "variant": "-100",
+        "icao_code": "BCS1",
+        "category": "narrow_body",
+        "range_nm": 3600,
+        "cruise_speed_kts": 440,
+        "takeoff_distance_m": 1500,
+        "landing_distance_m": 1300,
+        "is_owned": False,
+    },
+    {
+        "manufacturer": "Airbus",
+        "model": "A220",
+        "variant": "-300",
+        "icao_code": "BCS3",
+        "category": "narrow_body",
+        "range_nm": 3400,
+        "cruise_speed_kts": 440,
+        "takeoff_distance_m": 1700,
+        "landing_distance_m": 1400,
+        "is_owned": False,
+    }
+]
+
+def seed_aircraft():
+    added = 0
+    updated = 0
+
+    with SessionLocal.begin() as session:
+        for data in AIRCRAFT_DATA:
+            existing = session.scalar(
+                select(Aircraft).where(
+                    Aircraft.icao_code == data["icao_code"]
+                )
+            )
+
+            if existing:
+                for field, value in data.items():
+                    setattr(existing, field, value)
+
+                updated += 1
+                print(f"Updated: {data['icao_code']}")
+            else:
+                aircraft = Aircraft(**data)
+                session.add(aircraft)
+
+                added += 1
+                print(
+                    f"Added: {aircraft.manufacturer} "
+                    f"{aircraft.model} {aircraft.variant}"
+                )
+
+    print("\nAircraft seeding completed.")
+    print(f"Added: {added}")
+    print(f"Updated: {updated}")
+    print(f"Total processed: {added + updated}")
+
+if __name__ == "__main__":
+    seed_aircraft()

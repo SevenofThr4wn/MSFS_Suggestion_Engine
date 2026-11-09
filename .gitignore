@@ -1,0 +1,398 @@
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.stackdump
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+
+# ============================================================
+# EDITORS / IDEs
+# ============================================================
+
+# Visual Studio Code - personal settings
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# JetBrains / PyCharm / WebStorm
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Vim
+*.swp
+*.swo
+*.swn
+*.orig
+
+# Temporary editor files
+*.tmp
+*.temp
+*.bak
+
+
+# ============================================================
+# PYTHON - BYTECODE / CACHE
+# ============================================================
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+.pytest_cache/
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
+.pyright/
+.hypothesis/
+
+.dmypy.json
+dmypy.json
+
+
+# ============================================================
+# PYTHON - VIRTUAL ENVIRONMENTS
+# ============================================================
+
+.venv/
+venv/
+env/
+ENV/
+virtualenv/
+.conda/
+
+pip-wheel-metadata/
+
+
+# ============================================================
+# PYTHON - PACKAGING / BUILD
+# ============================================================
+
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+*.whl
+
+*.manifest
+*.spec
+
+pip-log.txt
+pip-delete-this-directory.txt
+
+
+# ============================================================
+# PYTHON - TESTING / COVERAGE
+# ============================================================
+
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+junit.xml
+test-results/
+
+
+# ============================================================
+# PYTHON - DOCUMENTATION
+# ============================================================
+
+docs/_build/
+site/
+*.prof
+*.pstats
+
+
+# ============================================================
+# PYTHON - NOTEBOOKS
+# ============================================================
+
+.ipynb_checkpoints/
+
+
+# ============================================================
+# FASTAPI / UVICORN
+# ============================================================
+
+*.pid
+uvicorn.pid
+gunicorn.pid
+
+# Temporary runtime files
+*.sock
+
+
+# ============================================================
+# SQLALCHEMY / SQLITE DATABASES
+# ============================================================
+
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sqlite3-journal
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3-shm
+*.sqlite3-wal
+
+# Database backups
+*.db.bak
+*.sqlite.bak
+*.sqlite3.bak
+*.db.backup
+
+# Keep Alembic migration scripts version controlled.
+# Do NOT ignore alembic/versions/.
+
+
+# ============================================================
+# NODE.JS - DEPENDENCIES
+# ============================================================
+
+node_modules/
+bower_components/
+
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+.npm/
+
+
+# ============================================================
+# NEXT.JS - BUILD OUTPUT
+# ============================================================
+
+.next/
+out/
+.vercel/
+.turbo/
+
+next-env.d.ts
+
+*.tsbuildinfo
+
+
+# ============================================================
+# FRONTEND - OTHER BUILD OUTPUT
+# ============================================================
+
+coverage/
+storybook-static/
+.parcel-cache/
+.cache/
+
+*.map
+
+
+# ============================================================
+# JAVASCRIPT / TYPESCRIPT LOGS
+# ============================================================
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+
+# ============================================================
+# ENVIRONMENT VARIABLES / SECRETS
+# ============================================================
+
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Local configuration / secrets
+secrets/
+.secrets/
+credentials.json
+service-account.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Keep public certificates where appropriate.
+# Do not blanket-ignore *.crt or *.cert.
+
+
+# ============================================================
+# LOG FILES
+# ============================================================
+
+*.log
+logs/
+log/
+
+*.log.*
+debug.log
+error.log
+access.log
+
+
+# ============================================================
+# TEMPORARY FILES
+# ============================================================
+
+tmp/
+temp/
+.cache/
+
+*.cache
+*.swp
+*.swo
+
+# Python crash dumps
+core
+core.*
+
+# Node crash reports
+report.*.json
+
+
+# ============================================================
+# APPLICATION RUNTIME DATA
+# ============================================================
+
+# Local application state
+.local/
+.local-data/
+
+# Generated recommendations / temporary results
+runtime/
+runtime_data/
+
+# Local exports
+exports/
+generated/
+
+# Temporary downloads
+downloads/
+
+
+# ============================================================
+# PYINSTALLER / EXECUTABLE PACKAGING
+# ============================================================
+
+*.exe
+*.dll
+*.pyd
+
+# PyInstaller intermediate data
+*.toc
+*.pyz
+*.pkg
+
+# Optional local PyInstaller work folders
+pyinstaller_build/
+pyinstaller_dist/
+
+
+# ============================================================
+# ARCHIVES / BACKUPS
+# ============================================================
+
+*.zip
+*.rar
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+
+*.backup
+*.old
+
+# ============================================================
+# MACHINE LEARNING - MODELS / CHECKPOINTS
+# ============================================================
+
+# Serialized models
+*.pkl
+*.pickle
+*.joblib
+*.onnx
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.hdf5
+*.keras
+*.safetensors
+*.tflite
+*.pb
+*.model
+
+# Model directories
+models/
+checkpoints/
+trained_models/
+saved_models/
+model_artifacts/
+ml_artifacts/
+ml_models/
+
+# Training outputs
+training_runs/
+runs/
+wandb/
+mlruns/
+lightning_logs/
+tensorboard/
+
+# Model checkpoints
+checkpoint-*/
+epoch-*/
+
+# Hugging Face / Transformers caches
+.cache/huggingface/
+.cache/torch/
+.cache/transformers/
+
+# Optional large training datasets
+datasets/
+training_data/
+
+# Keep Python ML source code tracked
+# app/ml/
+# app/engines/ml_engine.py
+# scripts/train_model.py

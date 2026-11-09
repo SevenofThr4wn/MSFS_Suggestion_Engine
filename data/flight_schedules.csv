@@ -1,0 +1,1 @@
+airline_name,airline_iata,airline_icao,flight_number,callsign,departure_icao,arrival_icao,departure_time_local,arrival_time_local,arrival_day_offset,aircraft_icao,aircraft_name,service_type,operating_days,valid_from,valid_until,source,source_reference,last_verified,status
