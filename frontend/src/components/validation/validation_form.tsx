@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 
 import type { ValidationController } from "@/lib/hooks/useFlightValidation";
-import { INITIAL_VALIDATION_VALUES } from "@/lib/hooks/useFlightValidation";
 
 import {
   flightValidationSchema,
@@ -32,7 +31,11 @@ interface ValidationFormProps {
 export function ValidationForm({ controller }: ValidationFormProps) {
   const form = useForm<FlightValidationValues>({
     resolver: zodResolver(flightValidationSchema),
-    defaultValues: INITIAL_VALIDATION_VALUES,
+    defaultValues: {
+      aircraftId: 5,
+      departure: "KJFK",
+      arrival: "TFFJ",
+    },
     mode: "onSubmit",
     reValidateMode: "onChange",
   });

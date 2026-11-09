@@ -11,12 +11,9 @@ import {
   LoaderCircle,
   RefreshCw,
 } from "lucide-react";
+import type { HybridAircraftPrediction, MLReliability } from "@/lib/types/ml";
 
-import type {
-  HybridAircraftPrediction,
-  MLReliability,
-  Route,
-} from "@/lib/types";
+import type { RouteRecommendation as Route } from "@/lib/types/route";
 
 import { useAircraftPrediction } from "@/lib/hooks/use_aircraft_prediction";
 
@@ -220,44 +217,28 @@ function PredictionResults({ data }: { data: HybridAircraftPrediction }) {
   );
 }
 
-
-export function MLAircraftSuggestions({
-  route,
-}: MLAircraftSuggestionsProps) {
+export function MLAircraftSuggestions({ route }: MLAircraftSuggestionsProps) {
   const [open, setOpen] = useState(false);
   const [selectedAirlineIcao, setSelectedAirlineIcao] = useState("");
   const [requestedKey, setRequestedKey] = useState<string | null>(null);
 
-  const {
-    prediction,
-    loading,
-    error,
-    predict,
-    cancel,
-  } = useAircraftPrediction();
+  const { prediction, loading, error, predict, cancel } =
+    useAircraftPrediction();
 
   // Airline from route metadata, if available.
-  const routeAirlineIcao = (
-    route.airline_icao ?? ""
-  ).trim().toUpperCase();
+  const routeAirlineIcao = (route.airline_icao ?? "").trim().toUpperCase();
 
   // Otherwise allow an airline to be entered manually.
-  const airlineIcao = (
-    routeAirlineIcao ||
-    selectedAirlineIcao.trim().toUpperCase()
-  );
+  const airlineIcao =
+    routeAirlineIcao || selectedAirlineIcao.trim().toUpperCase();
 
   const departureIcao = route.departure_icao;
   const arrivalIcao = route.arrival_icao;
   const distanceNm = route.distance_nm;
 
-  const hasAssignedAirline = /^[A-Z]{3}$/.test(
-    routeAirlineIcao
-  );
+  const hasAssignedAirline = /^[A-Z]{3}$/.test(routeAirlineIcao);
 
-  const validAirlineIcao = /^[A-Z]{3}$/.test(
-    airlineIcao
-  );
+  const validAirlineIcao = /^[A-Z]{3}$/.test(airlineIcao);
 
   const validDistance =
     typeof distanceNm === "number" &&
@@ -265,31 +246,22 @@ export function MLAircraftSuggestions({
     distanceNm > 0;
 
   const validAirports =
-    /^[A-Z]{4}$/.test(departureIcao) &&
-    /^[A-Z]{4}$/.test(arrivalIcao);
+    /^[A-Z]{4}$/.test(departureIcao) && /^[A-Z]{4}$/.test(arrivalIcao);
 
-  const canPredict =
-    validAirlineIcao &&
-    validDistance &&
-    validAirports;
+  const canPredict = validAirlineIcao && validDistance && validAirports;
 
   // Identify the precise inputs associated with a prediction.
-  const currentKey = [
-    airlineIcao,
-    departureIcao,
-    arrivalIcao,
-    distanceNm,
-  ].join(":");
+  const currentKey = [airlineIcao, departureIcao, arrivalIcao, distanceNm].join(
+    ":",
+  );
 
   // Prevent old prediction results from appearing when
   // the airline or route changes.
   const hasCurrentRequest = requestedKey === currentKey;
 
-  const currentPrediction =
-    hasCurrentRequest ? prediction : null;
+  const currentPrediction = hasCurrentRequest ? prediction : null;
 
-  const currentError =
-    hasCurrentRequest ? error : null;
+  const currentError = hasCurrentRequest ? error : null;
 
   useEffect(() => {
     return () => cancel();
@@ -308,9 +280,7 @@ export function MLAircraftSuggestions({
     });
   }
 
-  function handleAirlineChange(
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) {
+  function handleAirlineChange(event: React.ChangeEvent<HTMLInputElement>) {
     const value = event.target.value
       .toUpperCase()
       .replace(/[^A-Z]/g, "")
@@ -345,9 +315,7 @@ export function MLAircraftSuggestions({
           <BrainCircuit className="size-5 shrink-0 text-primary" />
 
           <div>
-            <h3 className="text-sm font-semibold">
-              ML Aircraft Suggestions
-            </h3>
+            <h3 className="text-sm font-semibold">ML Aircraft Suggestions</h3>
 
             <p className="mt-1 text-xs text-muted-foreground">
               Historical airline and aircraft predictions
@@ -363,15 +331,10 @@ export function MLAircraftSuggestions({
           onClick={toggleOpen}
           aria-expanded={open}
         >
-          {open
-            ? "Hide suggestions"
-            : "View ML suggestions"}
+          {open ? "Hide suggestions" : "View ML suggestions"}
 
           <ChevronDown
-            className={cn(
-              "size-4 transition-transform",
-              open && "rotate-180",
-            )}
+            className={cn("size-4 transition-transform", open && "rotate-180")}
           />
         </Button>
       </div>
@@ -382,15 +345,12 @@ export function MLAircraftSuggestions({
           {!hasAssignedAirline && (
             <div className="space-y-3 rounded-lg border border-border bg-secondary/20 p-4">
               <div className="space-y-1">
-                <h4 className="text-xs font-semibold">
-                  Select an airline
-                </h4>
+                <h4 className="text-xs font-semibold">Select an airline</h4>
 
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  No airline is assigned to this route.
-                  Enter an airline ICAO code to explore
-                  which aircraft the ML models associate
-                  with this airline and route.
+                  No airline is assigned to this route. Enter an airline ICAO
+                  code to explore which aircraft the ML models associate with
+                  this airline and route.
                 </p>
               </div>
 
@@ -418,15 +378,14 @@ export function MLAircraftSuggestions({
                   ) : (
                     <BrainCircuit className="size-4" />
                   )}
-
                   Predict aircraft
                 </Button>
               </div>
 
               <p className="text-[11px] leading-relaxed text-muted-foreground">
-                Example: UAE for Emirates. Manual airline
-                selection is hypothetical and does not
-                verify that the airline operates this route.
+                Example: UAE for Emirates. Manual airline selection is
+                hypothetical and does not verify that the airline operates this
+                route.
               </p>
             </div>
           )}
@@ -437,8 +396,8 @@ export function MLAircraftSuggestions({
               <AlertTriangle className="size-4 shrink-0" />
 
               <p>
-                Aircraft predictions require valid departure
-                and arrival ICAO airport codes.
+                Aircraft predictions require valid departure and arrival ICAO
+                airport codes.
               </p>
             </div>
           ) : !validDistance ? (
@@ -446,8 +405,8 @@ export function MLAircraftSuggestions({
               <AlertTriangle className="size-4 shrink-0" />
 
               <p>
-                Aircraft predictions are unavailable because
-                the route distance is missing or invalid.
+                Aircraft predictions are unavailable because the route distance
+                is missing or invalid.
               </p>
             </div>
           ) : !validAirlineIcao ? (
@@ -455,8 +414,8 @@ export function MLAircraftSuggestions({
               <Info className="size-4 shrink-0 text-primary" />
 
               <p>
-                Enter a three-letter airline ICAO code
-                to generate aircraft predictions.
+                Enter a three-letter airline ICAO code to generate aircraft
+                predictions.
               </p>
             </div>
           ) : loading && hasCurrentRequest ? (
@@ -466,7 +425,6 @@ export function MLAircraftSuggestions({
               className="flex items-center gap-2 py-6 text-sm text-muted-foreground"
             >
               <LoaderCircle className="size-4 animate-spin" />
-
               Evaluating aircraft predictions...
             </div>
           ) : currentError ? (
@@ -501,8 +459,8 @@ export function MLAircraftSuggestions({
                     <span className="font-mono font-semibold text-foreground">
                       {airlineIcao}
                     </span>
-                    . This does not establish that the
-                    airline operates this flight.
+                    . This does not establish that the airline operates this
+                    flight.
                   </p>
                 </div>
               )}

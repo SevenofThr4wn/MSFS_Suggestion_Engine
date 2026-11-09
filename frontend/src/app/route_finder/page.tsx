@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+import RouteFinder from "@/components/route_finder/route_finder";
 import { RouteFinderProvider } from "@/components/route_finder/route_finder_provider";
 
 export const metadata: Metadata = {

@@ -1,6 +1,6 @@
 import { CheckCircle2, CircleAlert, Code2, ShieldCheck } from "lucide-react";
 
-import type { Recommendation } from "@/lib/types";
+import type { Recommendation } from "@/lib/types/recommendation";
 
 import { clampScore, finite, pretty } from "@/lib/utils";
 
@@ -164,14 +164,14 @@ export function RecommendationAnalysis({ item }: RecommendationAnalysisProps) {
         </section>
       )}
 
-      {item.warnings?.length > 0 && (
+      {(item.warnings?.length ?? 0) > 0 && (
         <section className="space-y-3">
           <h4 className="flex items-center gap-2 text-xs font-semibold text-foreground">
             <CircleAlert className="size-4 text-amber-400" />
             Warnings
           </h4>
 
-          {item.warnings.map((warning, index) => (
+          {(item.warnings ?? []).map((warning, index) => (
             <Alert key={index} className="border-amber-500/25 bg-amber-500/5">
               <CircleAlert className="size-4 text-amber-400" />
 

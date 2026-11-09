@@ -24,3 +24,12 @@ export interface AirportSummary {
   scheduled_service: boolean | null;
   has_addon_scenery: boolean;
 }
+
+export interface AirportLocation {
+  icao: string;
+  airport_name: string | null;
+  city: string | null;
+  region: string | null;
+  country: string | null;
+  display_name: string;
+}

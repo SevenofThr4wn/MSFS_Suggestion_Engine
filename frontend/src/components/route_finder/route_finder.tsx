@@ -1,14 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-
 import { useQuery } from "@tanstack/react-query";
-
 import { AlertCircle, LoaderCircle, Map, Table2 } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
-
 import { useRouteFinder } from "@/lib/hooks/use_route_finder";
 
 import {
@@ -32,28 +28,9 @@ import RouteDetailPanel from "./route_detail_panel";
 // ============================================================
 
 export default function RouteFinder() {
-  // ----------------------------------------------------------
-  // View State
-  // ----------------------------------------------------------
-
   const [view, setView] = useState<RouteFinderView>("table");
-
-  // ----------------------------------------------------------
-  // Filter State
-  // ----------------------------------------------------------
-
   const { filters, updateFilters, resetFilters } = useRouteFilters();
-
-  // ----------------------------------------------------------
-  // Recommendation Data
-  // ----------------------------------------------------------
-
   const { data, loading, error, generate, refresh } = useRouteFinder();
-
-  // ----------------------------------------------------------
-  // Route Selection
-  // ----------------------------------------------------------
-
   const { selectedKey, selectRoute, getSelectedRoute } = useRouteSelection();
 
   // ----------------------------------------------------------
@@ -319,7 +296,7 @@ export default function RouteFinder() {
           Main Content
       ==================================================== */}
 
-      <main className="grid min-h-[650px] flex-1 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <main className="grid min-h-162.5 flex-1 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px]">
         {/* ------------------------------------------------
             Route Results
         ------------------------------------------------ */}

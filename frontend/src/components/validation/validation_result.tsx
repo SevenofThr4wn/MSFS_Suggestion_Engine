@@ -6,7 +6,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-import type { ValidationResponse } from "@/lib/types";
+import type { ValidationResponse } from "@/lib/types/validation";
 
 import { finite, pretty, statusLabel } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -91,7 +91,7 @@ export function ValidationResult({ result, loading }: ValidationResultProps) {
   const status = result.validation.status;
 
   const rejected = status === "rejected";
-  const passed = status === "pass";
+  const passed = status === "preliminary_pass";
 
   const statusStyles = rejected
     ? "border-red-500/30 bg-red-500/10 text-red-300"
@@ -168,7 +168,7 @@ export function ValidationResult({ result, loading }: ValidationResultProps) {
                   <Alert
                     key={`${issue.code}-${index}`}
                     className={
-                      issue.severity === "error" || rejected
+                      issue.severity === "reject" || rejected
                         ? "border-red-500/25 bg-red-500/5"
                         : "border-amber-500/25 bg-amber-500/5"
                     }

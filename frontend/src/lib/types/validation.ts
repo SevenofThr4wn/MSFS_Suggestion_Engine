@@ -72,3 +72,19 @@ export interface RouteAddonCompatibility {
   checks: AddonCompatibilityCheck[];
   verifiedAt?: string | null;
 }
+
+
+export interface ValidationResponse {
+  aircraft_id: number;
+  aircraft_name: string;
+
+  departure_icao: string;
+  arrival_icao: string;
+
+  route_distance_nm: number;
+
+  validation: ValidationOutcome;
+
+  departure_gate?: GateSuggestion | null;
+  disclaimer?: string | null;
+}

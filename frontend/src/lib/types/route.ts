@@ -44,6 +44,14 @@ export interface RouteRecommendation {
   score: number;
   score_breakdown?: Record<string, number>;
 
+  registration?: string | null;
+  registration_verified?: boolean;
+
+flyability_status?: "estimated" | "personalized";
+flyability_breakdown?: Record<string, number>;
+flyability_evidence?: Record<string, boolean>;
+personal_feedback_available?: boolean;
+
   flyability_score: number;
 
   // Explanations
