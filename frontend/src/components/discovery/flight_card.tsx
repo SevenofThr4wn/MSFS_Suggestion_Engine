@@ -17,7 +17,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-
 import { ScoreRing } from "@/components/ui/score_ring";
 import { RecommendationAnalysis } from "./recommendation_analysis";
 import { FlightPhoto } from "@/components/flights/flight_photo";

@@ -11,12 +11,10 @@ import {
   LoaderCircle,
   RefreshCw,
 } from "lucide-react";
+
 import type { HybridAircraftPrediction, MLReliability } from "@/lib/types/ml";
-
 import type { RouteRecommendation as Route } from "@/lib/types/route";
-
 import { useAircraftPrediction } from "@/lib/hooks/use_aircraft_prediction";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

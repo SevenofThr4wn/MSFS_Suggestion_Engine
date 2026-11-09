@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 
 import { cn, pretty } from "@/lib/utils";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +20,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+
 import { Separator } from "@/components/ui/separator";
 import { RecommendationResponse } from "@/lib/types/recommendation";
 

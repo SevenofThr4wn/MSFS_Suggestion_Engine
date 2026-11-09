@@ -1,9 +1,6 @@
 import { CheckCircle2, CircleAlert, Code2, ShieldCheck } from "lucide-react";
-
 import type { Recommendation } from "@/lib/types/recommendation";
-
 import { clampScore, finite, pretty } from "@/lib/utils";
-
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";

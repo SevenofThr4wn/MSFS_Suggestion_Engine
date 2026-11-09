@@ -12,7 +12,7 @@ from pathlib import Path
 
 
 APP_NAME = "MSFS FlightEngine"
-APP_VERSION = "0.1.5"
+APP_VERSION = "0.2.0"
 
 FRONTEND_PORT = 3000
 BACKEND_PORT = 8000
