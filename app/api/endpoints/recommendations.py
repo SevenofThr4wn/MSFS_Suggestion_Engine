@@ -31,6 +31,16 @@ from app.engines.geographic_engine import GeographicEngine
 from app.engines.recommendation_engine import RecommendationEngine
 from app.engines.route_engine import RouteEngine
 
+from app.api.endpoints.addons import (
+    get_addon_inventory_service,
+)
+from app.schemas.addon_compatibility import (
+    AddonCompatibilityRequest,
+)
+from app.services.addon_compatibility_service import (
+    AddonCompatibilityService,
+)
+
 
 from app.db.models.aircraft import Aircraft
 from app.db.models.flight_log import FlightLog
@@ -43,6 +53,11 @@ from app.schemas.recommendation import (
     RecommendationResponse,
 )
 
+from app.services.recommendation_schedule_service import (
+    RecommendationScheduleService,
+)
+from app.schemas.schedule import ScheduleStatus
+
 
 router = APIRouter(
     prefix="/recommendations",
@@ -53,10 +68,6 @@ weather_engine = EnvironmentEngine(ttl_seconds=600)
 
 logger = get_logger("api.recommendations")
 
-
-# ============================================================
-# LOGGING HELPERS
-# ============================================================
 
 def log_value(value: Any, fallback: str = "N/A") -> str:
     """Format a value for readable console logging."""
@@ -263,10 +274,6 @@ def log_rejected_examples(
             )
 
 
-# ============================================================
-# RECOMMENDATION GENERATION
-# ============================================================
-
 @router.post(
     "/generate",
     response_model=RecommendationResponse,
@@ -407,28 +414,96 @@ def generate(
 
         response = engine.recommend(request)
 
+        
+        schedule_matches = (
+            RecommendationScheduleService(db).match_routes(
+                routes=[
+                    item.route
+                    for item in response.recommendations
+                ],
+                departure_date=request.departure_date,
+                prefer_scheduled_aircraft=(
+                    request.prefer_scheduled_aircraft
+                ),
+            )
+            if request.schedule_enabled
+            else [None] * len(response.recommendations)
+        )
+
+
+        inventory = get_addon_inventory_service().scan()
+        addon_service = AddonCompatibilityService(inventory)
+
         # Enrich the final results without changing engine scoring or filtering.
         departure_location = get_airport_location(
             request.departure_code
         )
 
-        enriched_recommendations = [
-            item.model_copy(
+        
+        enriched_recommendations = []
+
+        for item, schedule_match in zip(
+            response.recommendations,
+            schedule_matches,
+        ):
+            route = item.route
+
+            compatibility = addon_service.evaluate(
+                AddonCompatibilityRequest(
+                    aircraft_icao=route.aircraft_icao_code,
+                    airline_icao=route.airline_icao,
+                    departure_icao=route.departure_icao,
+                    arrival_icao=route.arrival_icao,
+                )
+            )
+
+            enriched_recommendations.append(
+                item.model_copy(
+                    update={
+                        "arrival_location": get_airport_location(
+                            route.arrival_icao
+                        ),
+                        "addon_compatibility": compatibility,
+                    }
+                )
+            )
+
+            
+            enriched_recommendations.append(
+                item.model_copy(
+                    update={
+                        "arrival_location": get_airport_location(
+                            route.arrival_icao
+                        ),
+                        "addon_compatibility": compatibility,
+                        "schedule": schedule_match,
+                        "scheduled_service_verified": (
+                            schedule_match is not None
+                            and schedule_match.schedule.status
+                            == ScheduleStatus.VERIFIED
+                            and schedule_match.operates_on_date is True
+                        ),
+                    }
+                )
+            )
+
+        if request.schedule_enabled and request.require_scheduled_service:
+            enriched_recommendations = [
+                item
+                for item in enriched_recommendations
+                    if item.schedule is not None
+                    and item.schedule.operates_on_date is True
+                    and item.schedule.schedule.status
+                == ScheduleStatus.VERIFIED
+            ]
+
+            response = response.model_copy(
                 update={
-                    "arrival_location": get_airport_location(
-                        item.route.arrival_icao
-                    ),
+                    "departure_location": departure_location,
+                    "recommendations": enriched_recommendations,
+                    "returned": len(enriched_recommendations),
                 }
             )
-            for item in response.recommendations
-        ]
-
-        response = response.model_copy(
-            update={
-                "departure_location": departure_location,
-                "recommendations": enriched_recommendations,
-            }
-        )
 
         logger.info(
             "[%s] DEPARTURE LOCATION | %s | %s",
@@ -450,21 +525,15 @@ def generate(
             request_id,
         )
 
-        # ----------------------------------------------------
-        # RETURNED RECOMMENDATIONS
-        # ----------------------------------------------------
+       
 
         log_recommendation_results(response, log)
 
-        # ----------------------------------------------------
-        # REJECTED EXAMPLES
-        # ----------------------------------------------------
+        
 
         log_rejected_examples(response, log)
 
-        # ----------------------------------------------------
-        # RESPONSE WARNINGS
-        # ----------------------------------------------------
+       
 
         for warning in response.warnings or []:
             logger.warning(
@@ -473,9 +542,7 @@ def generate(
                 warning,
             )
 
-        # ----------------------------------------------------
-        # RESPONSE SUMMARY
-        # ----------------------------------------------------
+        
 
         log.response(
             generated=response.generated_candidates,
@@ -496,7 +563,6 @@ def generate(
             response.returned,
         )
 
-        # Full response only in DEBUG logging.
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(
                 "[%s] FULL RESPONSE | %s",
@@ -531,9 +597,7 @@ def generate(
         raise
 
 
-# ============================================================
-# FLIGHT LOG
-# ============================================================
+
 
 class FlightLogCreate(BaseModel):
     """Request body used to record a completed simulator flight."""
@@ -731,9 +795,7 @@ def record_flight(
     }
 
 
-# ============================================================
-# EXPLICIT AIRCRAFT VALIDATION
-# ============================================================
+
 
 class ExplicitValidationRequest(BaseModel):
     """Parameters for validating an aircraft against a proposed route."""
@@ -782,7 +844,7 @@ class ExplicitValidationRequest(BaseModel):
 
 
 class ExplicitValidationResponse(BaseModel):
-    """Aircraft, airport, and gate validation result for a proposed flight."""
+    """Aircraft, airport, and g ate validation result for a proposed flight."""
 
     aircraft_id: int = Field(
         ...,

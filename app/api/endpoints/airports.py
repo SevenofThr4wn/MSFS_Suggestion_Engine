@@ -1,5 +1,7 @@
 from dataclasses import asdict
 from typing import Annotated, Any
+import math
+
 
 from fastapi import (
     APIRouter,
@@ -619,6 +621,71 @@ def update_preferences(
         },
     },
 )
+
+@router.get("/coordinates")
+def get_airport_coordinates(
+    catalog: Annotated[
+        AirportCatalog,
+        Depends(get_airport_catalog),
+    ],
+    codes: str = Query(
+        ...,
+        min_length=4,
+        max_length=499,
+        description="Comma-separated ICAO airport codes.",
+    ),
+):
+    """
+    Return geographic coordinates for a collection
+    of ICAO airport codes.
+
+    Unknown airports are reported separately.
+    """
+    requested_codes = list(
+        dict.fromkeys(
+            code.strip().upper()
+            for code in codes.split(",")
+            if code.strip()
+        )
+    )
+
+    if len(requested_codes) > 100:
+        raise HTTPException(
+            status_code=422,
+            detail="Maximum 100 airports per request.",
+        )
+
+    airports = []
+    missing = []
+    
+
+    for code in requested_codes:
+        airport = catalog.get_by_code(code)
+
+        if (
+            airport is None
+            or airport.latitude is None
+            or airport.longitude is None
+            or not math.isfinite(airport.latitude)
+            or not math.isfinite(airport.longitude)
+            or not -90 <= airport.latitude <= 90
+            or not -180 <= airport.longitude <= 180
+        ):
+            missing.append(code)
+            continue
+
+        airports.append({
+            "icao": airport.icao_code,
+            "name": airport.name,
+            "latitude": airport.latitude,
+            "longitude": airport.longitude,
+        })
+
+    return {
+        "airports": airports,
+        "missing": missing,
+    }
+
 def get_airport(
     code: Annotated[
         str,
@@ -660,64 +727,3 @@ def get_airport(
         )
 
     return asdict(airport)
-
-
-
-@router.get("/coordinates")
-def get_airport_coordinates(
-    catalog: Annotated[
-        AirportCatalog,
-        Depends(get_airport_catalog),
-    ],
-    codes: str = Query(
-        ...,
-        min_length=4,
-        max_length=499,
-        description="Comma-separated ICAO airport codes.",
-    ),
-):
-    """
-    Return geographic coordinates for a collection
-    of ICAO airport codes.
-
-    Unknown airports are reported separately.
-    """
-    requested_codes = list(
-        dict.fromkeys(
-            code.strip().upper()
-            for code in codes.split(",")
-            if code.strip()
-        )
-    )
-
-    if len(requested_codes) > 100:
-        raise HTTPException(
-            status_code=422,
-            detail="Maximum 100 airports per request.",
-        )
-
-    airports = []
-    missing = []
-
-    for code in requested_codes:
-        airport = catalog.get_by_code(code)
-
-        if (
-            airport is None
-            or airport.latitude is None
-            or airport.longitude is None
-        ):
-            missing.append(code)
-            continue
-
-        airports.append({
-            "icao": airport.icao_code,
-            "name": airport.name,
-            "latitude": airport.latitude,
-            "longitude": airport.longitude,
-        })
-
-    return {
-        "airports": airports,
-        "missing": missing,
-    }

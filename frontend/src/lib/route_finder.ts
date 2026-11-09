@@ -14,13 +14,14 @@ export function buildRouteFinderRequest(
   return {
     mode: "discovery",
 
-    departure_code: filters.departureCode.trim().toUpperCase(),
-
+    departure_code: filters.departureCode.trim().toUpperCase() || null,
     arrival_code: filters.arrivalCode.trim().toUpperCase() || null,
 
     preferred_category: filters.aircraftCategory || null,
 
     airport_mode: filters.airportMode,
+
+
 
     min_duration_hours: filters.minDurationHours,
     max_duration_hours: filters.maxDurationHours,
@@ -47,9 +48,12 @@ export function buildRouteFinderRequest(
 }
 
 export function validateRouteFinderFilters(filters: RouteFinderFilters): void {
-  if (!filters.departureCode.trim()) {
-    throw new Error("A departure airport is required.");
+  
+  for (const code of [filters.departureCode, filters.arrivalCode]) {
+  if (code.trim() && !/^[A-Z]{4}$/.test(code.trim().toUpperCase())) {
+    throw new Error("Airport codes must be four-letter ICAO codes.");
   }
+}
 
   if (
     !Number.isFinite(filters.minDurationHours) ||

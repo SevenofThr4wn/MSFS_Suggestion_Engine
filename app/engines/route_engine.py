@@ -10,7 +10,8 @@ from app.core.logging import get_logger
 from app.db.repositories.route_catalog_repository import (
     RouteCatalogRepository,
 )
-
+from app.core.consts.airports import MAIN_HUB_CODES
+from app.schemas.route import AirportMode
 from app.engines.aircraft_engine import AircraftEngine
 from app.engines.airport_engine import AirportEngine, SuitabilityStatus
 from app.engines.flyability_engine import FlyabilityEngine
@@ -392,6 +393,12 @@ class RouteEngine:
             )
 
         if request.mode == RouteMode.DISCOVERY:
+            if not request.departure_code:
+                return self.generate_global_candidates(
+                    request,
+                    aircraft_list,
+                )
+
             return self.generate_geographic_candidates(
                 request,
                 aircraft_list,
@@ -1524,10 +1531,120 @@ class RouteEngine:
             + cruise_hours * cruise_speed_kts
         )
 
+    
+    def generate_global_candidates(
+        self,
+        request: RouteRecommendationRequest,
+        aircraft_list: list[Aircraft],
+    ) -> list[RouteCandidate]:
+        """
+        Discover routes from multiple worldwide origins.
 
-    # --------------------------------------------------
-    # Recommendation ranking and selection
-    # --------------------------------------------------
+        A bounded global search is used to prevent an
+        unfiltered discovery request from expanding into
+        millions of airport-pair evaluations.
+        """
+
+        raw_airports = self.catalog.airports.list_airports()
+        eligible_codes: list[str] = []
+
+        for airport in raw_airports:
+            code = airport.icao_code
+
+            if request.airport_mode == AirportMode.MAIN_HUBS:
+                eligible = code in MAIN_HUB_CODES
+
+            elif request.airport_mode == AirportMode.ALL:
+                eligible = True
+
+            else:
+                metadata = self.catalog.metadata.get_by_code(code)
+
+                eligible = (
+                    metadata is not None
+                    and not metadata.closed
+                    and metadata.scheduled_service
+                    and (
+                        metadata.airport_type == "large_airport"
+                        if request.airport_mode == AirportMode.MAJOR
+                        else metadata.airport_type in {
+                            "large_airport",
+                            "medium_airport",
+                        }
+                    )
+                )
+
+            if eligible:
+                eligible_codes.append(code)
+
+        eligible_codes = sorted(set(eligible_codes))
+
+        if not eligible_codes:
+            return []
+
+        # Spread the search budget across origins.
+        origin_limit = min(
+            len(eligible_codes),
+            request.max_airports,
+            32,
+        )
+
+        # Evenly sample the eligible network, avoiding
+        # a bias toward the first ICAO codes.
+        origins = [
+            eligible_codes[
+                min(
+                    len(eligible_codes) - 1,
+                    int((i + 0.5) * len(eligible_codes) / origin_limit),
+                )
+            ]
+            for i in range(origin_limit)
+        ]
+
+        per_origin_budget = max(
+            1,
+            request.max_candidates // len(origins),
+        )
+
+        results: list[RouteCandidate] = []
+        seen: set[tuple[str, str, int]] = set()
+
+        for origin_code in origins:
+            local_request = request.model_copy(
+                update={
+                    "departure_code": origin_code,
+                    "max_candidates": per_origin_budget,
+                }
+            )
+
+            candidates = self.generate_geographic_candidates(
+                local_request,
+                aircraft_list,
+            )
+
+            added = 0
+
+            for candidate in candidates:
+                key = (
+                    candidate.departure.icao_code,
+                    candidate.arrival.icao_code,
+                    candidate.aircraft.id,
+                )
+
+                if key in seen:
+                    continue
+
+                seen.add(key)
+                results.append(candidate)
+                added += 1
+
+                if added >= per_origin_budget:
+                    break
+
+                if len(results) >= request.max_candidates:
+                    return results
+
+        return results
 
     def recommend(
         self,

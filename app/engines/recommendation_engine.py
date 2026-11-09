@@ -24,6 +24,10 @@ from app.schemas.recommendation import (
 )
 from app.schemas.route import RouteRecommendationRequest
 
+from app.ml.recommendation_enrichment import (
+    enrich_recommendation,
+)
+
 logger = logging.getLogger("flightengine.recommendations.engine")
 
 
@@ -118,6 +122,7 @@ class RecommendationEngine:
                 **request.model_dump(
                     exclude={
                         "live_weather",
+                        "ml_enabled",
                         "scenarios_enabled",
                         "require_real_world_service",
                         "strict_aircraft_category",
@@ -712,6 +717,66 @@ class RecommendationEngine:
 
             if not made_progress:
                 break
+
+               # --------------------------------------------------
+        # Machine Learning Enrichment
+        # --------------------------------------------------
+
+        if request.ml_enabled:
+            event(
+                "ML",
+                "Enriching %d selected recommendations",
+                len(selected),
+            )
+
+            enriched_selected = []
+
+            for item in selected:
+                prediction, ml_status = (
+                    enrich_recommendation(item.route)
+                )
+
+                enriched_selected.append(
+                    item.model_copy(
+                        update={
+                            "ml_prediction": prediction,
+                            "ml_status": ml_status,
+                        }
+                    )
+                )
+
+                trace.record(
+                    "machine_learning",
+                    ml_status,
+                    details={
+                        "departure": (
+                            item.route.departure_icao
+                        ),
+                        "arrival": (
+                            item.route.arrival_icao
+                        ),
+                        "airline": (
+                            item.route.airline_icao
+                        ),
+                        "predicted_family": (
+                            prediction.predicted_family_id
+                            if prediction
+                            else None
+                        ),
+                        "selected_aircraft": (
+                            prediction.predicted_aircraft_icao
+                            if prediction
+                            else None
+                        ),
+                        "reliability": (
+                            prediction.reliability
+                            if prediction
+                            else "unknown"
+                        ),
+                    },
+                )
+
+            selected = enriched_selected
 
         # --------------------------------------------------
         # Final Decision Trace

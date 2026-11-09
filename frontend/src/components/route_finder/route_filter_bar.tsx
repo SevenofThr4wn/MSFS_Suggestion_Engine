@@ -105,9 +105,10 @@ export default function RouteFilterBar({
     filters.maxDurationHours < filters.minDurationHours;
 
   const invalidAirport =
-    !/^[A-Z]{4}$/.test(filters.departureCode.trim()) ||
-    (filters.arrivalCode.trim() !== "" &&
-      !/^[A-Z]{4}$/.test(filters.arrivalCode.trim()));
+  (filters.departureCode.trim() !== "" &&
+    !/^[A-Z]{4}$/.test(filters.departureCode.trim())) ||
+  (filters.arrivalCode.trim() !== "" &&
+    !/^[A-Z]{4}$/.test(filters.arrivalCode.trim()));
 
   function handleAirportChange(
     field: "departureCode" | "arrivalCode",

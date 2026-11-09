@@ -9,22 +9,16 @@ import type { RouteFinderFilters } from "@/lib/types/route_finder";
 // ============================================================
 
 export const DEFAULT_ROUTE_FILTERS: RouteFinderFilters = {
-  departureCode: "YBBN",
+  departureCode: "",
   arrivalCode: "",
-
   aircraftCategory: "",
   airportMode: "main_hubs",
-
   minDurationHours: 1,
   maxDurationHours: 12,
-
   ownedOnly: true,
   preferAddonScenery: true,
-
   includeIndeterminate: false,
   requireRealWorldRoute: false,
-
-  // Backend currently allows 1–50.
   limit: 30,
 };
 
@@ -69,22 +63,22 @@ export function useRouteFilters(
   // ----------------------------------------------------------
   // Derived State
   // ----------------------------------------------------------
+  const departure = filters.departureCode.trim().toUpperCase();
+  const arrival = filters.arrivalCode.trim().toUpperCase();
 
   const isValid =
-    /^[A-Z]{4}$/.test(filters.departureCode.trim()) &&
-    (filters.arrivalCode.trim() === "" ||
-      /^[A-Z]{4}$/.test(filters.arrivalCode.trim())) &&
-    (filters.arrivalCode.trim() === "" ||
-      filters.arrivalCode.trim() !== filters.departureCode.trim()) &&
-    Number.isFinite(filters.minDurationHours) &&
-    Number.isFinite(filters.maxDurationHours) &&
-    filters.minDurationHours >= 0 &&
-    filters.maxDurationHours > 0 &&
-    filters.minDurationHours <= filters.maxDurationHours &&
-    filters.maxDurationHours <= 30 &&
-    Number.isInteger(filters.limit) &&
-    filters.limit >= 1 &&
-    filters.limit <= 50;
+  (departure === "" || /^[A-Z]{4}$/.test(departure)) &&
+  (arrival === "" || /^[A-Z]{4}$/.test(arrival)) &&
+  (departure === "" || arrival === "" || departure !== arrival) &&
+  Number.isFinite(filters.minDurationHours) &&
+  Number.isFinite(filters.maxDurationHours) &&
+  filters.minDurationHours >= 0 &&
+  filters.maxDurationHours > 0 &&
+  filters.minDurationHours <= filters.maxDurationHours &&
+  filters.maxDurationHours <= 30 &&
+  Number.isInteger(filters.limit) &&
+  filters.limit >= 1 &&
+  filters.limit <= 50;
 
   const hasChanges = (
     Object.keys(DEFAULT_ROUTE_FILTERS) as Array<keyof RouteFinderFilters>

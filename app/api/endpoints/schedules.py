@@ -51,7 +51,9 @@ def lookup_schedule(
             airline_icao=request.airline_icao,
         )
 
-        result = OperationsEngine(schedules).lookup(request)
+        result = OperationsEngine(
+            schedules=schedules
+        ).lookup_schedule(request)
 
         logger.info(
             "SCHEDULE COMPLETE | %s -> %s | matches=%d | status=%s",

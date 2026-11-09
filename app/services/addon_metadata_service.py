@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 
 from app.schemas.addon import (
+    AddonCategory,
     AddonPackage,
     AircraftVariant,
     AirportCandidate,
@@ -52,6 +53,43 @@ def normalized_icao(value: str | None) -> str | None:
     code = value.strip().strip('"').strip("'").upper()
 
     return code if ICAO_PATTERN.fullmatch(code) else None
+
+
+def infer_aircraft_icao(
+    package_id: str,
+    title: str = "",
+) -> str | None:
+    name = f"{package_id} {title}".casefold()
+
+    patterns = (
+        (r"a350[-_ ]?1000|a35k", "A35K"),
+        (r"a350[-_ ]?900|a359", "A359"),
+        (r"a340[-_ ]?300|a343", "A343"),
+        (r"a380[-_ ]?800|a388", "A388"),
+        (r"a330[-_ ]?300|a333", "A333"),
+        (r"a330[-_ ]?200|a332", "A332"),
+        (r"777[-_ ]?300er|(?:^|[-_ ])77w(?:$|[-_ ])", "B77W"),
+        (r"777[-_ ]?200lr|(?:^|[-_ ])77l(?:$|[-_ ])", "B77L"),
+        (r"777[-_ ]?f(?:$|[-_ ])|(?:^|[-_ ])77f(?:$|[-_ ])", "B77L"),
+        (r"747[-_ ]?8f|(?:^|[-_ ])748f(?:$|[-_ ])", "B748"),
+        (r"a320[-_ ]?neo|a20n", "A20N"),
+        (r"a321[-_ ]?neo|a21n", "A21N"),
+        (r"(?:^|[-_ ])(?:a319|fnxa319)(?:$|[-_ ])", "A319"),
+        (r"(?:^|[-_ ])(?:a320|fnxa320)(?:$|[-_ ])", "A320"),
+        (r"(?:^|[-_ ])(?:a321|fnxa321)(?:$|[-_ ])", "A321"),
+        (r"fnx[-_]aircraft[-_]319", "A319"),
+        (r"fnx[-_]aircraft[-_]320", "A320"),
+        (r"fnx[-_]aircraft[-_]321", "A321"),
+    )
+
+    matches = {
+        icao
+        for pattern, icao in patterns
+        if re.search(pattern, name)
+    }
+
+    return next(iter(matches)) if len(matches) == 1 else None
+
 
 
 def get_value(
@@ -129,13 +167,12 @@ def extract_aircraft_variants(
         if config is None:
             continue
 
-        aircraft_icao = normalized_icao(
-            get_value(config, "GENERAL", "icao_type_designator")
-        )
-
-        is_livery = (
-            path.name.casefold() == "livery.cfg"
-            or config.has_section("LIVERY")
+        general_icao = normalized_icao(
+            get_value(
+                config,
+                "GENERAL",
+                "icao_type_designator",
+            )
         )
 
         sections = [
@@ -148,44 +185,71 @@ def extract_aircraft_variants(
             )
         ]
 
+        is_livery = (
+            path.name.casefold() == "livery.cfg"
+            or config.has_section("LIVERY")
+        )
+
         for section in sections:
             title = (
                 get_value(config, section, "title")
                 or path.parent.name
             )
 
-            airline_icao = normalized_icao(
-                get_value(config, section, "icao_airline")
-            )
-
-            variant = AircraftVariant(
-                package_id=package_id,
-                title=title,
-                aircraft_icao=aircraft_icao,
-                airline_icao=airline_icao,
-                airline_name=get_value(
-                    config,
-                    section,
-                    "atc_airline",
-                ),
-                registration=get_value(
-                    config,
-                    section,
-                    "atc_id",
-                ),
-                user_selectable=parse_selectable(
+            aircraft_icao = (
+                normalized_icao(
                     get_value(
                         config,
                         section,
-                        "isUserSelectable",
+                        "icao_type_designator",
                     )
-                ),
-                is_livery=is_livery,
+                )
+                or general_icao
+                or infer_aircraft_icao(
+                    package_id,
+                    title,
+                )
             )
 
-            variants.append(variant)
+            airline_icao = normalized_icao(
+                get_value(
+                    config,
+                    section,
+                    "icao_airline",
+                )
+            )
 
-    unique: dict[tuple[str, str, str, str], AircraftVariant] = {}
+            variants.append(
+                AircraftVariant(
+                    package_id=package_id,
+                    title=title,
+                    aircraft_icao=aircraft_icao,
+                    airline_icao=airline_icao,
+                    airline_name=get_value(
+                        config,
+                        section,
+                        "atc_airline",
+                    ),
+                    registration=get_value(
+                        config,
+                        section,
+                        "atc_id",
+                    ),
+                    user_selectable=parse_selectable(
+                        get_value(
+                            config,
+                            section,
+                            "isUserSelectable",
+                        )
+                    ),
+                    is_livery=is_livery,
+                )
+            )
+
+    unique: dict[
+        tuple[str, str, str, str],
+        AircraftVariant,
+    ] = {}
 
     for variant in variants:
         key = (
@@ -198,6 +262,7 @@ def extract_aircraft_variants(
         unique[key] = variant
 
     return list(unique.values())
+
 
 
 def extract_airport_candidates(
@@ -287,6 +352,7 @@ def detect_utility(
     return None
 
 
+
 def enrich_packages(
     packages: list[AddonPackage],
     roots: list[tuple[str, Path]],
@@ -300,7 +366,7 @@ def enrich_packages(
     utilities: list[UtilityComponent] = []
 
     package_lookup = {
-        (package.source, package.package_id): package
+        (package.source, package.package_id.casefold()): package
         for package in packages
     }
 
@@ -332,12 +398,12 @@ def enrich_packages(
                 continue
 
             package = package_lookup.get(
-                (label, resolved.name)
+                (label, directory.name.casefold())
             )
 
             if package is None:
                 package = package_lookup.get(
-                    (label, directory.name)
+                    (label, resolved.name.casefold())
                 )
 
             if package is None:
@@ -345,19 +411,58 @@ def enrich_packages(
 
             seen_directories.add(resolved)
 
-            variants.extend(
-                extract_aircraft_variants(
-                    resolved,
+            if package.category == AddonCategory.TRAFFIC:
+                utility = detect_utility(
                     package.package_id,
+                    package.name,
                 )
-            )
 
-            airports.extend(
-                extract_airport_candidates(
+                if utility is not None:
+                    utilities.append(utility)
+
+                continue
+
+            if package.category == AddonCategory.LIVERY:
+                extracted = extract_aircraft_variants(
                     resolved,
                     package.package_id,
                 )
-            )
+
+                variants.extend(
+                    variant.model_copy(
+                        update={"is_livery": True}
+                    )
+                    for variant in extracted
+                )
+
+                continue
+
+            if package.category == AddonCategory.AIRCRAFT:
+                extracted = extract_aircraft_variants(
+                    resolved,
+                    package.package_id,
+                )
+
+                variants.extend(
+                    variant.model_copy(
+                        update={"is_livery": False}
+                    )
+                    for variant in extracted
+                    if variant.user_selectable is not False
+                )
+
+                continue
+
+            if package.category in (
+                AddonCategory.AIRPORT,
+                AddonCategory.SCENERY,
+            ):
+                airports.extend(
+                    extract_airport_candidates(
+                        resolved,
+                        package.package_id,
+                    )
+                )
 
             utility = detect_utility(
                 package.package_id,
@@ -371,7 +476,7 @@ def enrich_packages(
         key=lambda value: (
             value.aircraft_icao or "",
             value.airline_icao or "",
-            value.title,
+            value.title.casefold(),
         )
     )
 
@@ -390,3 +495,4 @@ def enrich_packages(
     )
 
     return variants, airports, utilities
+

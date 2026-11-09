@@ -183,51 +183,147 @@ def read_package_manifest(
         return None
 
 
+
+import re
+
+from app.schemas.addon import AddonCategory
+
+
+BASE_AIRCRAFT_PACKAGES = {
+    "fnx-aircraft-319",
+    "fnx-aircraft-320",
+    "fnx-aircraft-321",
+    "inibuilds-aircraft-a340",
+    "inibuilds-aircraft-a350",
+    "inibuilds-aircraft-a380",
+    "inibuilds-aircraft-a380-800",
+    "pmdg-aircraft-77w",
+    "pmdg-aircraft-77f",
+    "pmdg-aircraft-772",
+}
+
+AIRCRAFT_SUPPORT_MARKERS = (
+    "zcore",
+    "common",
+    "core-files",
+    "base-files",
+    "engine-blur",
+    "efb+",
+    "aerocache",
+    "sound-pack",
+    "soundpack",
+    "enhanced blur",
+)
+
+LIVERY_MARKERS = (
+    "livery",
+    "liveries",
+    "repaint",
+    "paintkit",
+    "paint pack",
+    "airline pack",
+    "texture pack",
+    "qantas pack",
+    "qatar pack",
+    "emirates pack",
+    "lufthansa pack",
+    "cathay pacific pack",
+    "etihad airways pack",
+    "starlux airlines pack",
+    "alternative livery",
+)
+
+REGISTRATION_PATTERN = re.compile(
+    r"\b(?:VH|G|D|A6|A7|N|9V|HL|JA|HS|B|PH|OE|OO|F)"
+    r"[- ]?[A-Z0-9]{3,6}\b",
+    re.IGNORECASE,
+)
+
+
 def classify_package(
     package_id: str,
     title: str,
     content_type: str,
 ) -> AddonCategory:
-    name = f"{package_id} {title}".casefold()
+    identifier = package_id.casefold()
+    name = title.casefold()
+    combined = f"{identifier} {name}"
     kind = content_type.casefold().strip()
 
-    if "fsltl" in name:
+    if "fsltl" in combined:
         return AddonCategory.TRAFFIC
 
     if any(
-        marker in name
+        marker in combined
         for marker in ("gsx", "couatl", "fsdreamteam")
     ):
         return AddonCategory.UTILITY
 
+    if any(
+        marker in combined
+        for marker in AIRCRAFT_SUPPORT_MARKERS
+    ):
+        return AddonCategory.UTILITY
+
+    if identifier in BASE_AIRCRAFT_PACKAGES:
+        return AddonCategory.AIRCRAFT
+
     if kind == "livery":
         return AddonCategory.LIVERY
 
-    if kind == "aircraft":
-        return AddonCategory.AIRCRAFT
+    if any(
+        marker in combined
+        for marker in LIVERY_MARKERS
+    ):
+        return AddonCategory.LIVERY
+
+    if REGISTRATION_PATTERN.search(title):
+        return AddonCategory.LIVERY
+
+    if identifier.startswith("hues"):
+        return AddonCategory.LIVERY
+
+    if identifier.startswith("ha_fnx"):
+        return AddonCategory.LIVERY
+
+    if identifier.startswith("inia343_"):
+        return AddonCategory.LIVERY
+
+    if identifier.startswith("msfs24_ini_"):
+        return AddonCategory.LIVERY
+
+    if identifier.startswith("fnx-aircraft-"):
+        return AddonCategory.LIVERY
+
+    if identifier.startswith("pmdg-aircraft-"):
+        return AddonCategory.LIVERY
+
+    if identifier.startswith("inibuilds-aircraft-"):
+        return AddonCategory.LIVERY
 
     if kind == "scenery":
         if any(
-            marker in name
-            for marker in ("airport", "airfield")
+            marker in combined
+            for marker in ("landmark", "pois", "points of interest")
         ):
+            return AddonCategory.SCENERY
+
+        if "airport" in combined or "airfield" in combined:
             return AddonCategory.AIRPORT
 
         return AddonCategory.SCENERY
 
-    if "livery" in name or "repaint" in name:
-        return AddonCategory.LIVERY
-
-    if "aircraft" in name:
-        return AddonCategory.AIRCRAFT
-
-    if "airport" in name or "airfield" in name:
+    if kind == "airport":
         return AddonCategory.AIRPORT
 
-    if "scenery" in name:
-        return AddonCategory.SCENERY
+    if kind == "traffic":
+        return AddonCategory.TRAFFIC
+
+    if "volanta" in combined or "toolbar" in combined:
+        return AddonCategory.UTILITY
 
     return AddonCategory.UNKNOWN
+
 
 
 def inspect_package(
@@ -412,6 +508,67 @@ class AddonInventoryService:
                 packages=packages,
                 roots=resolve_roots(self._roots),
             )
+
+            
+            variant_lookup: dict[str, list] = {}
+            airport_lookup: dict[str, set[str]] = {}
+
+            for variant in variants:
+                variant_lookup.setdefault(
+                    variant.package_id.casefold(),
+                    [],
+                ).append(variant)
+
+            for candidate in airport_candidates:
+                airport_lookup.setdefault(
+                    candidate.package_id.casefold(),
+                    set(),
+                ).add(candidate.icao)
+
+            for package in packages:
+                package_id = package.package_id.casefold()
+
+                package_variants = variant_lookup.get(
+                    package_id,
+                    [],
+                )
+
+                if package.category in (
+                    AddonCategory.AIRCRAFT,
+                    AddonCategory.LIVERY,
+                ):
+                    aircraft_codes = {
+                        variant.aircraft_icao
+                        for variant in package_variants
+                        if variant.aircraft_icao
+                    }
+
+                    airline_codes = {
+                        variant.airline_icao
+                        for variant in package_variants
+                        if variant.airline_icao
+                    }
+
+                    if len(aircraft_codes) == 1:
+                        package.aircraft_icao = next(
+                            iter(aircraft_codes)
+                        )
+
+                    if len(airline_codes) == 1:
+                        package.airline_icao = next(
+                            iter(airline_codes)
+                        )
+
+                airport_codes = airport_lookup.get(
+                    package_id,
+                    set(),
+                )
+
+                if len(airport_codes) == 1:
+                    package.airport_icao = next(
+                        iter(airport_codes)
+                    )
+
 
             utilities.extend(detect_external_utilities())
 

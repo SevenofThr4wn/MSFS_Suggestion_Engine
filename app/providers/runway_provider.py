@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parents[2]
-RUNWAY_FILE = BASE_DIR / "data" / "runways.csv"
+RUNWAY_FILE = BASE_DIR / "data" / "reference" / "runways.csv"
 
 FT_TO_M = 0.3048
 

@@ -1,12 +1,18 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from datetime import date
 
 from app.schemas.route import (
     RouteRecommendation,
     RouteRecommendationRequest,
+)
+
+from app.schemas.ml import HybridAircraftPredictionResponse
+
+from app.schemas.addon_compatibility import (
+    AddonCompatibilityResponse,
 )
 
 from app.schemas.schedule import ScheduleMatch
@@ -47,12 +53,31 @@ class RecommendationRequest(RouteRecommendationRequest):
     departure_gate_enabled: bool = True
     departure_date: date | None = None
 
+    ml_enabled: bool = True
+
     include_decision_trace: bool = False
     include_rejected_examples: bool = True
 
     schedule_enabled: bool = False
     require_scheduled_service: bool = False
     prefer_scheduled_aircraft: bool = True
+
+    @model_validator(mode="after")
+    def validate_schedule_preferences(self):
+        if self.require_scheduled_service:
+            if not self.schedule_enabled:
+                raise ValueError(
+                    "Scheduled service filtering requires "
+                    "schedule_enabled=True."
+                )
+
+            if self.departure_date is None:
+                raise ValueError(
+                    "A departure date is required when "
+                    "requiring verified scheduled service."
+                )
+
+        return self
 
 
 class ScoredRecommendation(BaseModel):
@@ -75,6 +100,20 @@ class ScoredRecommendation(BaseModel):
     history_novelty_score: float
     weather_score: float | None
     final_score: float
+
+    ml_prediction: HybridAircraftPredictionResponse | None = None
+
+    ml_status: Literal[
+        "available",
+        "disabled",
+        "skipped",
+        "unavailable",
+    ] = "disabled"
+
+    addon_compatibility: AddonCompatibilityResponse | None = None
+
+    schedule: ScheduleMatch | None = None
+    scheduled_service_verified: bool = False
 
     score_breakdown: dict[str, float]
     evidence_coverage: dict[str, bool]

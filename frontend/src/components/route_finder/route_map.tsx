@@ -9,6 +9,8 @@ import type { AirportCoordinateLookup } from "@/lib/types/route_finder";
 import { getRouteCoordinates, routeBounds } from "@/lib/route_map";
 import { routeKey } from "@/lib/route_finder";
 
+import { initializeRouteAnimation, animateRoute } from "./route_animation";
+
 import {
   initializeRouteMapLayers,
   updateRouteMapLayers,
@@ -17,7 +19,6 @@ import {
 
 const DARK_MAP_STYLE =
   "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
-
 
 interface RouteMapProps {
   routes: ScoredRecommendation[];
@@ -80,7 +81,6 @@ export default function RouteMap({
   selectedKey,
   onSelect,
 }: RouteMapProps) {
-
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const dataRef = useRef<CurrentMapData>({
@@ -91,6 +91,7 @@ export default function RouteMap({
   });
 
   const [ready, setReady] = useState(false);
+  const [isGlobe, setIsGlobe] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -141,12 +142,17 @@ export default function RouteMap({
           "bottom-left",
         );
 
+        // Configure the globe once. Switching projection later must
+        // not be undone by a style-load callback.
+        map.setProjection({ type: "globe" });
+
         map.on("load", () => {
           if (cancelled) {
             return;
           }
 
           initializeRouteMapLayers(map);
+          initializeRouteAnimation(map);
 
           const current = dataRef.current;
 
@@ -200,7 +206,6 @@ export default function RouteMap({
           }
 
           console.error("ROUTE MAP ERROR |", event.error);
-
         });
       } catch (cause) {
         if (cancelled) {
@@ -225,6 +230,34 @@ export default function RouteMap({
       }
     };
   }, []);
+
+  function toggleGlobe() {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+
+    const next = !isGlobe;
+    map.setProjection({ type: next ? "globe" : "mercator" });
+    setIsGlobe(next);
+  }
+
+  // Hooks must run at the top level of the component, never from
+  // map event handlers. Cleanup cancels the previous flight animation.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+
+    const selected = selectedKey
+      ? routes.find((item) => routeKey(item) === selectedKey)
+      : undefined;
+
+    const coordinates = selected
+      ? getRouteCoordinates(selected, airports)
+      : null;
+
+    if (!coordinates) return;
+
+    return animateRoute(map, coordinates);
+  }, [ready, routes, airports, selectedKey]);
 
   useEffect(() => {
     dataRef.current = {
@@ -262,7 +295,24 @@ export default function RouteMap({
   return (
     <div className="relative h-full min-h-150 w-full overflow-hidden bg-[#0d0f14]">
       <div ref={containerRef} className="absolute inset-0" />
-      
+
+      <button
+        type="button"
+        onClick={toggleGlobe}
+        disabled={!ready}
+        className="
+        absolute right-5 top-5 z-20
+        rounded-lg border border-white/10
+        bg-[#121318]/90 px-4 py-2
+        text-xs font-medium text-zinc-200
+        shadow-xl backdrop-blur-md
+        transition-colors hover:bg-zinc-800
+        disabled:opacity-50
+      "
+      >
+        {isGlobe ? "2D Map" : "3D Globe"}
+      </button>
+
       <div className="pointer-events-none absolute left-5 top-5 z-10 rounded-xl border border-white/10 bg-[#121318]/90 px-4 py-3 shadow-xl backdrop-blur-md">
         <div className="flex items-center gap-2">
           <Globe2 className="size-4 text-amber-400" />
@@ -296,8 +346,7 @@ export default function RouteMap({
         </div>
       </div>
 
-    
-    {!ready && !error && (
+      {!ready && !error && (
         <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-[#0d0f14]">
           <LoaderCircle className="size-6 animate-spin text-amber-400" />
 

@@ -16,11 +16,6 @@ load_dotenv()
 
 METAR_API_URL = os.getenv("METAR_API_URL")
 
-
-# ============================================================
-# Weather Models
-# ============================================================
-
 @dataclass(frozen=True)
 class WeatherContext:
     """
@@ -125,11 +120,6 @@ def parse_metar_json(
         warnings=tuple(warnings),
     )
 
-
-# ============================================================
-# Environment Engine
-# ============================================================
-
 class EnvironmentEngine:
     """
     Manage flight environment conditions and simulator scenarios.
@@ -146,10 +136,6 @@ class EnvironmentEngine:
     Generated scenarios are simulated events and do not
     represent actual aircraft or airport conditions.
     """
-
-    # --------------------------------------------------------
-    # Available Flight Scenarios
-    # --------------------------------------------------------
 
     SCENARIOS = (
         (
@@ -177,10 +163,6 @@ class EnvironmentEngine:
         ),
     )
 
-    # --------------------------------------------------------
-    # Initialization
-    # --------------------------------------------------------
-
     def __init__(
         self,
         ttl_seconds: int = 600,
@@ -201,10 +183,6 @@ class EnvironmentEngine:
         ] = {}
 
         self._lock = Lock()
-
-    # ========================================================
-    # Weather Retrieval
-    # ========================================================
 
     def fetch(
         self,
@@ -228,10 +206,6 @@ class EnvironmentEngine:
             )
         )
 
-        # ----------------------------------------------------
-        # Live Weather Disabled
-        # ----------------------------------------------------
-
         if not live:
             return {
                 code: WeatherContext(
@@ -243,10 +217,6 @@ class EnvironmentEngine:
                 )
                 for code in codes
             }
-
-        # ----------------------------------------------------
-        # Cache Lookup
-        # ----------------------------------------------------
 
         now = monotonic()
 
@@ -261,9 +231,6 @@ class EnvironmentEngine:
                 )
             ]
 
-        # ----------------------------------------------------
-        # Fetch Missing Observations
-        # ----------------------------------------------------
 
         if missing:
             try:
@@ -335,10 +302,6 @@ class EnvironmentEngine:
                     for code in missing[:100]
                 }
 
-            # ------------------------------------------------
-            # Update Cache
-            # ------------------------------------------------
-
             with self._lock:
                 self._cache.update(
                     {
@@ -346,10 +309,6 @@ class EnvironmentEngine:
                         for code, item in fresh.items()
                     }
                 )
-
-        # ----------------------------------------------------
-        # Return Weather Contexts
-        # ----------------------------------------------------
 
         with self._lock:
             return {
@@ -366,10 +325,6 @@ class EnvironmentEngine:
                 )
                 for code in codes
             }
-
-    # ========================================================
-    # Weather Evaluation
-    # ========================================================
 
     @staticmethod
     def evaluate(
@@ -439,10 +394,7 @@ class EnvironmentEngine:
             ],
         )
 
-    # ========================================================
-    # Flight Scenario Generation
-    # ========================================================
-
+    
     @classmethod
     def generate_scenario(
         cls,

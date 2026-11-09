@@ -8,7 +8,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parents[2]
 
 AIRPORT_METADATA_FILE = (
-    BASE_DIR / "data" / "airports.csv"
+    BASE_DIR / "data" / "reference" / "airports.csv"
 )
 
 

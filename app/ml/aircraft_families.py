@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 # Family IDs are stable internal identifiers.
@@ -13,6 +12,7 @@ FAMILY_NAMES: dict[str, str] = {
     "A380": "Airbus A380",
     "B737_CLASSIC": "Boeing 737 Classic",
     "B737_NG": "Boeing 737 NG",
+    "B717": "Boeing 717",
     "B737_MAX": "Boeing 737 MAX",
     "B747": "Boeing 747",
     "B757": "Boeing 757",
@@ -42,6 +42,7 @@ FAMILY_CODES: dict[str, tuple[str, ...]] = {
     "A340": ("A342", "A343", "A345", "A346"),
     "A350": ("A359", "A35K", "A35F"),
     "A380": ("A388",),
+    "B717": ("B712",),
     "B737_CLASSIC": ("B732", "B733", "B734", "B735"),
     "B737_NG": ("B736", "B737", "B738", "B739"),
     "B737_MAX": ("B37M", "B38M", "B39M", "B3XM"),
