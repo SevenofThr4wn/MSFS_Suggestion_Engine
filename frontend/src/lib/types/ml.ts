@@ -1,4 +1,9 @@
-export type MLReliability = "unknown" | "low" | "moderate";
+export type MLReliability =
+  | "unknown"
+  | "low"
+  | "moderate"
+  | "higher";
+  
 export interface AircraftPredictionRequest {
   airline_icao: string;
   departure_icao: string;

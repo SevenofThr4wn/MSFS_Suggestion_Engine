@@ -155,6 +155,7 @@ def find_aircraft_configs(package: Path) -> list[Path]:
     return results
 
 
+
 def extract_aircraft_variants(
     package: Path,
     package_id: str,
@@ -264,53 +265,119 @@ def extract_aircraft_variants(
     return list(unique.values())
 
 
+AIRPORT_PACKAGE_PATTERN = re.compile(
+    r"(?:^|[-_\s])airport[-_\s]+([a-z]{4})(?=$|[-_\s])",
+    re.IGNORECASE,
+)
+
+AIRPORT_TITLE_PATTERN = re.compile(
+    r"(?<![A-Z0-9])([A-Z]{4})(?![A-Z0-9])",
+    re.IGNORECASE,
+)
+
+# Explicit exceptions for packages whose names don't
+# contain an ICAO code.
+AIRPORT_PACKAGE_ALIASES = {
+    "flytampagg-sydney": "YSSY",
+}
+
+
+def infer_airport_icao(
+    package_id: str,
+    package_name: str = "",
+) -> str | None:
+    """Infer an airport ICAO from installed package metadata."""
+
+    package_key = package_id.casefold()
+
+    alias = AIRPORT_PACKAGE_ALIASES.get(package_key)
+
+    if alias:
+        return alias
+
+    match = AIRPORT_PACKAGE_PATTERN.search(package_id)
+
+    if match:
+        return match.group(1).upper()
+
+    # A title such as "WSSS Singapore Changi Airport"
+    # can provide an ICAO when the package ID doesn't.
+    if "airport" in package_name.casefold():
+        match = AIRPORT_TITLE_PATTERN.search(package_name)
+
+        if match:
+            return match.group(1).upper()
+
+    return None
+
 
 def extract_airport_candidates(
     package: Path,
     package_id: str,
+    package_name: str = "",
 ) -> list[AirportCandidate]:
+    """Extract airport candidates from scenery and package metadata."""
+
+    candidates: dict[str, AirportCandidate] = {}
+
+    # First, inspect the scenery layout when available.
     layout = package / "layout.json"
 
     try:
         if (
-            not layout.is_file()
-            or layout.stat().st_size > MAX_LAYOUT_BYTES
+            layout.is_file()
+            and layout.stat().st_size <= MAX_LAYOUT_BYTES
         ):
-            return []
+            with layout.open(
+                "r",
+                encoding="utf-8-sig",
+            ) as handle:
+                data = json.load(handle)
 
-        with layout.open("r", encoding="utf-8-sig") as handle:
-            data = json.load(handle)
+            entries = (
+                data.get("content", [])
+                if isinstance(data, dict)
+                else []
+            )
+
+            if isinstance(entries, list):
+                for entry in entries[:20_000]:
+                    if not isinstance(entry, dict):
+                        continue
+
+                    path = entry.get("path")
+
+                    if not isinstance(path, str):
+                        continue
+
+                    match = AIRPORT_PATH_PATTERN.search(path)
+
+                    if not match:
+                        continue
+
+                    icao = match.group(1).upper()
+
+                    candidates[icao] = AirportCandidate(
+                        package_id=package_id,
+                        icao=icao,
+                        evidence="layout_filename",
+                        verified=False,
+                    )
 
     except (OSError, ValueError, UnicodeError):
-        return []
+        pass
 
-    entries = data.get("content", []) if isinstance(data, dict) else []
+    # Fall back to the package identifier and title.
+    inferred_icao = infer_airport_icao(
+        package_id,
+        package_name,
+    )
 
-    if not isinstance(entries, list):
-        return []
-
-    candidates: dict[str, AirportCandidate] = {}
-
-    for entry in entries[:20_000]:
-        if not isinstance(entry, dict):
-            continue
-
-        path = entry.get("path")
-
-        if not isinstance(path, str):
-            continue
-
-        match = AIRPORT_PATH_PATTERN.search(path)
-
-        if not match:
-            continue
-
-        icao = match.group(1).upper()
-
-        candidates[icao] = AirportCandidate(
+    if inferred_icao and inferred_icao not in candidates:
+        candidates[inferred_icao] = AirportCandidate(
             package_id=package_id,
-            icao=icao,
-            evidence="layout_filename",
+            icao=inferred_icao,
+            evidence="package_metadata",
             verified=False,
         )
 
@@ -458,11 +525,12 @@ def enrich_packages(
                 AddonCategory.SCENERY,
             ):
                 airports.extend(
-                    extract_airport_candidates(
-                        resolved,
-                        package.package_id,
-                    )
+                extract_airport_candidates(
+                    resolved,
+                    package.package_id,
+                    package.name,
                 )
+            )
 
             utility = detect_utility(
                 package.package_id,

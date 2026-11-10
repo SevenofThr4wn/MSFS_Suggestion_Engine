@@ -1,132 +1,36 @@
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import { MapPinned } from "lucide-react";
 
-import "maplibre-gl/dist/maplibre-gl.css";
+import "ol/ol.css";
+
+import Map from "ol/Map";
+import View from "ol/View";
+import TileLayer from "ol/layer/Tile";
+import VectorLayer from "ol/layer/Vector";
+import XYZ from "ol/source/XYZ";
+import VectorSource from "ol/source/Vector";
+import Feature from "ol/Feature";
+import Point from "ol/geom/Point";
+import LineString from "ol/geom/LineString";
+import { Circle as CircleStyle, Fill, Stroke, Style } from "ol/style";
+import { fromLonLat } from "ol/proj";
+import { defaults as defaultControls } from "ol/control";
 
 import type { RouteMapCoordinates } from "@/lib/types/route_finder";
+import { greatCirclePoints } from "@/lib/route_map";
 
 interface RoutePreviewMapProps {
   coordinates?: RouteMapCoordinates | null;
   height?: number;
 }
 
-const DARK_MAP_STYLE =
-  "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
-
-function toRadians(degrees: number): number {
-  return (degrees * Math.PI) / 180;
-}
-
-function toDegrees(radians: number): number {
-  return (radians * 180) / Math.PI;
-}
-
-/**
- * Generate intermediate points along the shortest
- * great-circle path between two airports.
- */
-function createGreatCircle(
-  departure: [number, number],
-  arrival: [number, number],
-  segments = 96,
-): [number, number][] {
-  const lon1 = toRadians(departure[0]);
-  const lat1 = toRadians(departure[1]);
-
-  const lon2 = toRadians(arrival[0]);
-  const lat2 = toRadians(arrival[1]);
-
-  const a = [
-    Math.cos(lat1) * Math.cos(lon1),
-    Math.cos(lat1) * Math.sin(lon1),
-    Math.sin(lat1),
-  ];
-
-  const b = [
-    Math.cos(lat2) * Math.cos(lon2),
-    Math.cos(lat2) * Math.sin(lon2),
-    Math.sin(lat2),
-  ];
-
-  const dot = Math.max(
-    -1,
-    Math.min(1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2]),
-  );
-
-  const angle = Math.acos(dot);
-  const sinAngle = Math.sin(angle);
-
-  const points: [number, number][] = [];
-
-  for (let i = 0; i <= segments; i++) {
-    const t = i / segments;
-
-    let x: number;
-    let y: number;
-    let z: number;
-
-    if (angle < 1e-8) {
-      x = a[0];
-      y = a[1];
-      z = a[2];
-    } else if (Math.abs(sinAngle) < 1e-8) {
-      // Antipodal airports have no unique shortest arc.
-      // Use a deterministic orthogonal great-circle plane.
-      let nx = -a[1];
-      let ny = a[0];
-      let nz = 0;
-
-      const norm = Math.hypot(nx, ny, nz);
-
-      if (norm < 1e-8) {
-        nx = 1;
-        ny = 0;
-        nz = 0;
-      } else {
-        nx /= norm;
-        ny /= norm;
-        nz /= norm;
-      }
-
-      x = Math.cos(Math.PI * t) * a[0] + Math.sin(Math.PI * t) * nx;
-      y = Math.cos(Math.PI * t) * a[1] + Math.sin(Math.PI * t) * ny;
-      z = Math.cos(Math.PI * t) * a[2] + Math.sin(Math.PI * t) * nz;
-    } else {
-      const weightA = Math.sin((1 - t) * angle) / sinAngle;
-
-      const weightB = Math.sin(t * angle) / sinAngle;
-
-      x = weightA * a[0] + weightB * b[0];
-      y = weightA * a[1] + weightB * b[1];
-      z = weightA * a[2] + weightB * b[2];
-    }
-
-    const longitude = toDegrees(Math.atan2(y, x));
-    const latitude = toDegrees(Math.atan2(z, Math.hypot(x, y)));
-
-    // Unwrap longitudes to keep the route continuous
-    // when crossing the international date line.
-    if (points.length > 0) {
-      const previous = points[points.length - 1][0];
-      const shift = Math.round((previous - longitude) / 360);
-
-      points.push([longitude + shift * 360, latitude]);
-    } else {
-      points.push([longitude, latitude]);
-    }
-  }
-
-  return points;
-}
-
 function validCoordinates(
   coordinates: RouteMapCoordinates | null | undefined,
 ): coordinates is RouteMapCoordinates {
-  if (!coordinates) {
-    return false;
-  }
+  if (!coordinates) return false;
 
   return [coordinates.departure, coordinates.arrival].every(
     (airport) =>
@@ -154,162 +58,142 @@ export default function RoutePreviewMap({
   const hasCoordinates = validCoordinates(coordinates);
 
   useEffect(() => {
-    if (!hasCoordinates || !containerRef.current) {
+    if (
+      !hasCoordinates ||
+      !containerRef.current ||
+      departureLat === undefined ||
+      departureLon === undefined ||
+      arrivalLat === undefined ||
+      arrivalLon === undefined
+    ) {
       return;
     }
 
-    let cancelled = false;
-    let mapInstance: import("maplibre-gl").Map | null = null;
+    const departure: [number, number] = [
+      departureLon,
+      departureLat,
+    ];
 
-    setError(null);
+    const arrival: [number, number] = [
+      arrivalLon,
+      arrivalLat,
+    ];
 
-    async function initialize() {
-      try {
-        const maplibregl = await import("maplibre-gl");
+    const path = greatCirclePoints(departure, arrival, 96);
 
-        if (cancelled || !containerRef.current) {
-          return;
-        }
+    // Unwrap longitudes so a Pacific route does not
+    // incorrectly cross the entire flat map.
+    const unwrapped: [number, number][] = [];
 
-        const departure: [number, number] = [departureLon!, departureLat!];
-        const arrival: [number, number] = [arrivalLon!, arrivalLat!];
-        const path = createGreatCircle(departure, arrival);
+    for (const [lng, lat] of path) {
+      const previous = unwrapped.at(-1);
 
-        mapInstance = new maplibregl.Map({
-          container: containerRef.current,
-          style: DARK_MAP_STYLE,
-          center: departure,
-          zoom: 2,
-          interactive: false,
-          attributionControl: false,
-        });
+      const adjustedLng = previous
+        ? lng + 360 * Math.round((previous[0] - lng) / 360)
+        : lng;
 
-        const map = mapInstance;
-
-        map.on("load", () => {
-          if (cancelled) {
-            return;
-          }
-
-          map.addSource("preview-route", {
-            type: "geojson",
-            data: {
-              type: "Feature",
-              geometry: {
-                type: "LineString",
-                coordinates: path,
-              },
-              properties: {},
-            },
-          });
-
-          map.addLayer({
-            id: "preview-route-line",
-            type: "line",
-            source: "preview-route",
-            paint: {
-              "line-color": "#d946ef",
-              "line-width": 2.5,
-              "line-opacity": 0.9,
-            },
-            layout: {
-              "line-cap": "round",
-              "line-join": "round",
-            },
-          });
-
-          map.addSource("preview-airports", {
-            type: "geojson",
-            data: {
-              type: "FeatureCollection",
-              features: [
-                {
-                  type: "Feature",
-                  properties: {
-                    icao: departureIcao ?? "",
-                  },
-                  geometry: {
-                    type: "Point",
-                    coordinates: path[0],
-                  },
-                },
-                {
-                  type: "Feature",
-                  properties: {
-                    icao: arrivalIcao ?? "",
-                  },
-                  geometry: {
-                    type: "Point",
-                    coordinates: path[path.length - 1],
-                  },
-                },
-              ],
-            },
-          });
-
-          map.addLayer({
-            id: "preview-airport-halo",
-            type: "circle",
-            source: "preview-airports",
-            paint: {
-              "circle-radius": 8,
-              "circle-color": "#facc15",
-              "circle-opacity": 0.15,
-            },
-          });
-
-          map.addLayer({
-            id: "preview-airport-points",
-            type: "circle",
-            source: "preview-airports",
-            paint: {
-              "circle-radius": 4,
-              "circle-color": "#facc15",
-              "circle-stroke-color": "#111217",
-              "circle-stroke-width": 1.5,
-            },
-          });
-
-          const longitudes = path.map((point) => point[0]);
-          const latitudes = path.map((point) => point[1]);
-
-          map.fitBounds(
-            [
-              [Math.min(...longitudes), Math.min(...latitudes)],
-              [Math.max(...longitudes), Math.max(...latitudes)],
-            ],
-            {
-              padding: 35,
-              duration: 0,
-              maxZoom: 6,
-            },
-          );
-        });
-
-        map.on("error", (event) => {
-          if (!cancelled) {
-            console.error("Route preview map error:", event.error);
-            setError("Unable to load map tiles.");
-          }
-        });
-      } catch (cause) {
-        if (!cancelled) {
-          console.error("Failed to initialize route preview:", cause);
-          setError("Unable to initialize the route map.");
-        }
-      }
+      unwrapped.push([adjustedLng, lat]);
     }
 
-    void initialize();
+    const projectedPath = unwrapped.map((point) =>
+      fromLonLat(point),
+    );
+
+    const line = new Feature({
+      geometry: new LineString(projectedPath),
+    });
+
+    line.setStyle(
+      new Style({
+        stroke: new Stroke({
+          color: "#d946ef",
+          width: 2.5,
+        }),
+      }),
+    );
+
+    const departurePoint = new Feature({
+      geometry: new Point(projectedPath[0]),
+    });
+
+    const arrivalPoint = new Feature({
+      geometry: new Point(projectedPath[projectedPath.length - 1]),
+    });
+
+    const pointStyle = new Style({
+      image: new CircleStyle({
+        radius: 5,
+        fill: new Fill({
+          color: "#facc15",
+        }),
+        stroke: new Stroke({
+          color: "#111217",
+          width: 2,
+        }),
+      }),
+    });
+
+    departurePoint.setStyle(pointStyle);
+    arrivalPoint.setStyle(pointStyle);
+
+    const source = new VectorSource({
+      features: [line, departurePoint, arrivalPoint],
+    });
+
+    const vectorLayer = new VectorLayer({
+      source,
+    });
+
+    const tileLayer = new TileLayer({
+      source: new XYZ({
+        url: `https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png?key=${encodeURIComponent(process.env.NEXT_PUBLIC_CARTO_API_KEY ?? "")}`,
+        attributions:
+          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · © <a href="https://carto.com/attributions">CARTO</a>',
+        crossOrigin: "anonymous",
+      }),
+    });
+
+    const map = new Map({
+      target: containerRef.current,
+      layers: [tileLayer, vectorLayer],
+      view: new View({
+        center: projectedPath[0],
+        zoom: 2,
+        minZoom: 1,
+        maxZoom: 12,
+        multiWorld: true,
+      }),
+      controls: defaultControls({
+        zoom: false,
+        rotate: false,
+      }),
+      interactions: [],
+    });
+
+    const geometry = line.getGeometry();
+
+    if (geometry) {
+      map.getView().fit(geometry.getExtent(), {
+        size: map.getSize(),
+        padding: [30, 30, 30, 30],
+        duration: 0,
+        maxZoom: 6,
+      });
+    }
+
+    const handleTileError = () => {
+      setError("Unable to load map tiles.");
+    };
+
+    tileLayer.getSource()?.on("tileloaderror", handleTileError);
 
     return () => {
-      cancelled = true;
-      mapInstance?.remove();
+      tileLayer.getSource()?.un("tileloaderror", handleTileError);
+      map.setTarget(undefined);
+      map.dispose();
     };
   }, [
     hasCoordinates,
-    departureIcao,
-    arrivalIcao,
     departureLat,
     departureLon,
     arrivalLat,
@@ -329,7 +213,7 @@ export default function RoutePreviewMap({
             Route map unavailable
           </p>
 
-          <p className="mt-1 text-[11px] leading-5 text-zinc-600">
+          <p className="mt-1 text-[11px] text-zinc-600">
             Airport coordinates have not been loaded.
           </p>
         </div>
@@ -342,20 +226,19 @@ export default function RoutePreviewMap({
       style={{ height }}
       className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-[#17191f]"
     >
-      <div ref={containerRef} className="absolute inset-0" />
+      <div
+        ref={containerRef}
+        className="absolute inset-0"
+      />
 
       {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#17191f]/95 px-5 text-center text-xs text-zinc-400">
-          {error}
+        <div className="absolute inset-0 flex items-center justify-center bg-[#17191f]/95 px-5 text-center">
+          <p className="text-xs text-red-400">{error}</p>
         </div>
       )}
 
       <div className="pointer-events-none absolute bottom-2 left-2 rounded-md bg-black/70 px-2 py-1 font-mono text-[10px] text-zinc-200">
         {departureIcao} → {arrivalIcao}
-      </div>
-
-      <div className="pointer-events-none absolute bottom-2 right-2 rounded-md bg-black/70 px-2 py-1 text-[9px] text-zinc-400">
-        © OpenStreetMap © CARTO
       </div>
     </div>
   );

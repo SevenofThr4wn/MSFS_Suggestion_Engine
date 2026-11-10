@@ -50,9 +50,7 @@ def read_installed_packages_path(
         if not match:
             return None
 
-        value = os.path.expandvars(
-            match.group(1).strip()
-        )
+        value = os.path.expandvars(match.group(1).strip())
 
         if not value:
             return None
@@ -72,24 +70,26 @@ def get_default_package_roots() -> list[tuple[str, Path]]:
     installations: list[tuple[str, Path]] = []
 
     if appdata:
-        installations.append((
-            "Steam",
-            Path(appdata) / "Microsoft Flight Simulator 2024",
-        ))
+        installations.append(
+            (
+                "Steam",
+                Path(appdata) / "Microsoft Flight Simulator 2024",
+            )
+        )
 
     if localappdata:
-        installations.append((
-            "Microsoft Store",
-            Path(localappdata)
-            / "Packages"
-            / "Microsoft.Limitless_8wekyb3d8bbwe"
-            / "LocalCache",
-        ))
+        installations.append(
+            (
+                "Microsoft Store",
+                Path(localappdata)
+                / "Packages"
+                / "Microsoft.Limitless_8wekyb3d8bbwe"
+                / "LocalCache",
+            )
+        )
 
     for label, installation in installations:
-        configured = read_installed_packages_path(
-            installation / "UserCfg.opt"
-        )
+        configured = read_installed_packages_path(installation / "UserCfg.opt")
 
         if configured is not None:
             packages_root = configured
@@ -97,10 +97,12 @@ def get_default_package_roots() -> list[tuple[str, Path]]:
             packages_root = installation / "Packages"
 
         for folder in PACKAGE_FOLDERS:
-            candidates.append((
-                f"{label} {folder}",
-                packages_root / folder,
-            ))
+            candidates.append(
+                (
+                    f"{label} {folder}",
+                    packages_root / folder,
+                )
+            )
 
     return candidates
 
@@ -121,10 +123,12 @@ def get_custom_package_roots() -> list[tuple[str, Path]]:
 
         expanded = os.path.expandvars(value)
 
-        roots.append((
-            f"Custom {index}",
-            Path(expanded).expanduser(),
-        ))
+        roots.append(
+            (
+                f"Custom {index}",
+                Path(expanded).expanduser(),
+            )
+        )
 
     return roots
 
@@ -135,8 +139,7 @@ def resolve_roots(
     candidates = (
         configured_roots
         if configured_roots is not None
-        else get_default_package_roots()
-        + get_custom_package_roots()
+        else get_default_package_roots() + get_custom_package_roots()
     )
 
     roots: list[tuple[str, Path]] = []
@@ -181,7 +184,6 @@ def read_package_manifest(
 
     except (OSError, ValueError, UnicodeError):
         return None
-
 
 
 import re
@@ -234,8 +236,7 @@ LIVERY_MARKERS = (
 )
 
 REGISTRATION_PATTERN = re.compile(
-    r"\b(?:VH|G|D|A6|A7|N|9V|HL|JA|HS|B|PH|OE|OO|F)"
-    r"[- ]?[A-Z0-9]{3,6}\b",
+    r"\b(?:VH|G|D|A6|A7|N|9V|HL|JA|HS|B|PH|OE|OO|F)" r"[- ]?[A-Z0-9]{3,6}\b",
     re.IGNORECASE,
 )
 
@@ -250,80 +251,100 @@ def classify_package(
     combined = f"{identifier} {name}"
     kind = content_type.casefold().strip()
 
-    if "fsltl" in combined:
+    if "fsltl" in combined or kind == "traffic":
         return AddonCategory.TRAFFIC
 
-    if any(
-        marker in combined
-        for marker in ("gsx", "couatl", "fsdreamteam")
-    ):
+    if any(marker in combined for marker in ("gsx", "couatl", "fsdreamteam")):
         return AddonCategory.UTILITY
 
-    if any(
-        marker in combined
-        for marker in AIRCRAFT_SUPPORT_MARKERS
-    ):
+    if any(marker in combined for marker in AIRCRAFT_SUPPORT_MARKERS):
         return AddonCategory.UTILITY
 
     if identifier in BASE_AIRCRAFT_PACKAGES:
         return AddonCategory.AIRCRAFT
 
+    # Classify scenery before checking aircraft registrations.
+    # Otherwise ordinary airport names may be mistaken for liveries.
+    if kind in ("scenery", "airport"):
+        if any(
+            marker in combined
+            for marker in (
+                "landmark",
+                "points of interest",
+                "landmarks",
+            )
+        ):
+            return AddonCategory.SCENERY
+
+        if (
+            kind == "airport"
+            or "airport" in combined
+            or "airfield" in combined
+            or "aerodrome" in combined
+        ):
+            return AddonCategory.AIRPORT
+
+        return AddonCategory.SCENERY
+
     if kind == "livery":
         return AddonCategory.LIVERY
 
-    if any(
-        marker in combined
-        for marker in LIVERY_MARKERS
-    ):
+    if any(marker in combined for marker in LIVERY_MARKERS):
         return AddonCategory.LIVERY
 
     if REGISTRATION_PATTERN.search(title):
         return AddonCategory.LIVERY
 
-    if identifier.startswith("hues"):
+    if identifier.startswith(
+        (
+            "hues",
+            "ha_fnx",
+            "inia343_",
+            "msfs24_ini_",
+            "fnx-aircraft-",
+            "pmdg-aircraft-",
+            "inibuilds-aircraft-",
+        )
+    ):
         return AddonCategory.LIVERY
-
-    if identifier.startswith("ha_fnx"):
-        return AddonCategory.LIVERY
-
-    if identifier.startswith("inia343_"):
-        return AddonCategory.LIVERY
-
-    if identifier.startswith("msfs24_ini_"):
-        return AddonCategory.LIVERY
-
-    if identifier.startswith("fnx-aircraft-"):
-        return AddonCategory.LIVERY
-
-    if identifier.startswith("pmdg-aircraft-"):
-        return AddonCategory.LIVERY
-
-    if identifier.startswith("inibuilds-aircraft-"):
-        return AddonCategory.LIVERY
-
-    if kind == "scenery":
-        if any(
-            marker in combined
-            for marker in ("landmark", "pois", "points of interest")
-        ):
-            return AddonCategory.SCENERY
-
-        if "airport" in combined or "airfield" in combined:
-            return AddonCategory.AIRPORT
-
-        return AddonCategory.SCENERY
-
-    if kind == "airport":
-        return AddonCategory.AIRPORT
-
-    if kind == "traffic":
-        return AddonCategory.TRAFFIC
 
     if "volanta" in combined or "toolbar" in combined:
         return AddonCategory.UTILITY
 
     return AddonCategory.UNKNOWN
 
+
+AIRPORT_PACKAGE_ICAO_PATTERN = re.compile(
+    r"(?:^|[-_])airport[-_]([a-z]{4})(?=$|[-_])",
+    re.IGNORECASE,
+)
+
+
+def infer_airport_icao(
+    package_id: str,
+    title: str,
+) -> str | None:
+    match = AIRPORT_PACKAGE_ICAO_PATTERN.search(package_id)
+
+    if match:
+        return match.group(1).upper()
+
+    # Only accept an ICAO at the beginning of the title
+    # when the title explicitly describes an airport.
+    if re.search(
+        r"\b(?:airport|airfield|aerodrome|intl|international)\b",
+        title,
+        re.IGNORECASE,
+    ):
+        match = re.match(
+            r"^([A-Z]{4})(?=\s|[-_])",
+            title.strip(),
+        )
+
+        if match:
+            return match.group(1)
+
+    return None
 
 
 def inspect_package(
@@ -337,10 +358,7 @@ def inspect_package(
 
         if "fsltl" in name:
             category = AddonCategory.TRAFFIC
-        elif any(
-            value in name
-            for value in ("gsx", "couatl")
-        ):
+        elif any(value in name for value in ("gsx", "couatl")):
             category = AddonCategory.UTILITY
         else:
             return None
@@ -353,13 +371,9 @@ def inspect_package(
             detection_method=DetectionMethod.FOLDER_NAME,
         )
 
-    title = str(
-        manifest.get("title") or directory.name
-    )
+    title = str(manifest.get("title") or directory.name)
 
-    content_type = str(
-        manifest.get("content_type") or ""
-    )
+    content_type = str(manifest.get("content_type") or "")
 
     version = manifest.get("package_version")
     creator = manifest.get("creator")
@@ -404,9 +418,7 @@ class AddonInventoryService:
                 and self._inventory is not None
                 and now - self._cache_time < self.cache_seconds
             ):
-                return self._inventory.model_copy(
-                    update={"cached": True}
-                )
+                return self._inventory.model_copy(update={"cached": True})
 
             packages: list[AddonPackage] = []
             root_results: list[AddonScanRoot] = []
@@ -440,11 +452,8 @@ class AddonInventoryService:
                                         f"{label}: package scan limit reached."
                                     )
                                     break
-
                                 try:
-                                    if entry.is_dir(
-                                        follow_symlinks=True
-                                    ):
+                                    if entry.is_dir(follow_symlinks=True):
                                         directories.append(Path(entry.path))
                                 except OSError:
                                     continue
@@ -452,9 +461,7 @@ class AddonInventoryService:
                     for directory in directories:
                         try:
                             resolved = directory.resolve()
-                            identity = os.path.normcase(
-                                str(resolved)
-                            )
+                            identity = os.path.normcase(str(resolved))
 
                             if identity in seen_directories:
                                 continue
@@ -480,9 +487,7 @@ class AddonInventoryService:
                         label,
                         type(exc).__name__,
                     )
-                    warnings.append(
-                        f"{label}: directory could not be read."
-                    )
+                    warnings.append(f"{label}: directory could not be read.")
 
                 root_results.append(
                     AddonScanRoot(
@@ -499,17 +504,13 @@ class AddonInventoryService:
                 )
             )
 
-            totals = Counter(
-                package.category.value
-                for package in packages
-            )
+            totals = Counter(package.category.value for package in packages)
 
             variants, airport_candidates, utilities = enrich_packages(
                 packages=packages,
                 roots=resolve_roots(self._roots),
             )
 
-            
             variant_lookup: dict[str, list] = {}
             airport_lookup: dict[str, set[str]] = {}
 
@@ -550,32 +551,34 @@ class AddonInventoryService:
                     }
 
                     if len(aircraft_codes) == 1:
-                        package.aircraft_icao = next(
-                            iter(aircraft_codes)
-                        )
+                        package.aircraft_icao = next(iter(aircraft_codes))
 
                     if len(airline_codes) == 1:
-                        package.airline_icao = next(
-                            iter(airline_codes)
-                        )
+                        package.airline_icao = next(iter(airline_codes))
 
-                airport_codes = airport_lookup.get(
-                    package_id,
-                    set(),
-                )
-
-                if len(airport_codes) == 1:
-                    package.airport_icao = next(
-                        iter(airport_codes)
+                if package.category == AddonCategory.AIRPORT:
+                    airport_codes = airport_lookup.get(
+                        package_id,
+                        set(),
                     )
 
+                    if len(airport_codes) == 1:
+                        package.airport_icao = next(iter(airport_codes))
+
+                    elif not airport_codes:
+                        package.airport_icao = infer_airport_icao(
+                            package.package_id,
+                            package.name,
+                        )
 
             utilities.extend(detect_external_utilities())
 
-            utilities = list({
-                (item.name, item.component, item.evidence): item
-                for item in utilities
-            }.values())
+            utilities = list(
+                {
+                    (item.name, item.component, item.evidence): item
+                    for item in utilities
+                }.values()
+            )
 
             inventory = AddonInventoryResponse(
                 scanned_at=datetime.now(timezone.utc),
@@ -587,7 +590,7 @@ class AddonInventoryService:
                 aircraft_variants=variants,
                 airport_candidates=airport_candidates,
                 utilities=utilities,
-                warnings=warnings
+                warnings=warnings,
             )
 
             self._inventory = inventory

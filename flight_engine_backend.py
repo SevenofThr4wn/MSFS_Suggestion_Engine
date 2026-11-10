@@ -30,7 +30,6 @@ def main() -> None:
 
     root = get_application_root()
 
-    # Establish the application's working directory first.
     os.chdir(root)
 
     database_path = root / "flightengine.db"
