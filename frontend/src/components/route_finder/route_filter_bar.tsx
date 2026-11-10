@@ -163,7 +163,7 @@ export default function RouteFilterBar({
 
               <Input
                 id="rf-departure"
-                placeholder="YBBN"
+                placeholder="Anywhere"
                 value={filters.departureCode}
                 onChange={(event) =>
                   handleAirportChange("departureCode", event.target.value)
@@ -362,8 +362,8 @@ export default function RouteFilterBar({
           <div className="space-y-4">
             <FilterSwitch
               id="rf-scenery"
-              label="Prefer add-on scenery"
-              description="Prioritize destinations with installed scenery."
+              label="Installed scenery only"
+              description="Show only installed scenery airports and their possible connections. Disable to generate flight recommendations."
               checked={filters.preferAddonScenery}
               onChange={(preferAddonScenery) =>
                 onChange({ preferAddonScenery })

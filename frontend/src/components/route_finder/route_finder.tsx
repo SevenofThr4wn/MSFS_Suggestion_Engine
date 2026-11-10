@@ -1,5 +1,7 @@
 "use client";
 
+import SceneryNetwork from "./scenery_network";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, LoaderCircle, Map, Table2 } from "lucide-react";
@@ -47,7 +49,7 @@ export default function RouteFinder() {
   // ----------------------------------------------------------
 
   useEffect(() => {
-    generate(DEFAULT_ROUTE_FILTERS);
+    if (!DEFAULT_ROUTE_FILTERS.preferAddonScenery) generate(DEFAULT_ROUTE_FILTERS);
   }, [generate]);
 
   // ----------------------------------------------------------
@@ -146,6 +148,16 @@ export default function RouteFinder() {
     eligible: data?.eligible_after_filters ?? 0,
     returned: routes.length,
   };
+
+  if (filters.preferAddonScenery) {
+    return (
+      <SceneryNetwork
+        filters={filters}
+        onChange={updateFilters}
+        onReset={resetFilters}
+      />
+    );
+  }
 
   // ==========================================================
   // Render
