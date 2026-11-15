@@ -19,7 +19,6 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ScoreRing } from "@/components/ui/score_ring";
 import { RecommendationAnalysis } from "./recommendation_analysis";
-import { FlightPhoto } from "@/components/flights/flight_photo";
 import { FlightFeedbackForm } from "@/components/feedback/flight_feedback_form";
 import { AirportLocation } from "@/lib/types/airport";
 import { Recommendation } from "@/lib/types/recommendation";
@@ -28,7 +27,6 @@ interface FlightCardProps {
   item: Recommendation;
   index: number;
   departureLocation?: AirportLocation | null;
-  aircraftPhotographyEnabled?: boolean;
 }
 
 interface FlightDetailProps {
@@ -49,8 +47,7 @@ function FlightDetail({ icon, children }: FlightDetailProps) {
 export function FlightCard({
   item,
   index,
-  departureLocation,
-  aircraftPhotographyEnabled = false,
+  departureLocation
 }: FlightCardProps) {
   const [analysisOpen, setAnalysisOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -72,9 +69,7 @@ export function FlightCard({
     );
 
   const isSuitable = route.suitability === "preliminary_pass";
-
   const isRealWorld = route.is_real_world_route === true;
-
   const flightNumber = String(index + 1).padStart(2, "0");
 
   const distance = finite(route.distance_nm).toLocaleString(undefined, {
@@ -92,7 +87,6 @@ export function FlightCard({
         "hover:border-primary/30",
       )}
     >
-      {/* Flight header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-[10px] font-bold tracking-[0.15em] text-muted-foreground">
           FLIGHT OPTION {flightNumber}
@@ -130,22 +124,8 @@ export function FlightCard({
         </div>
       </div>
 
-      {aircraftPhotographyEnabled && (
-        <FlightPhoto
-          departureIcao={route.departure_icao}
-          arrivalIcao={route.arrival_icao}
-          arrivalName={route.arrival_name ?? route.arrival_icao}
-          aircraftCode={route.aircraft_icao_code}
-          airline={isRealWorld ? route.airline_name : null}
-          registration={route.registration}
-          registrationVerified={route.registration_verified === true}
-        />
-      )}
-
-      {/* Route overview */}
       <div className="flight-main">
         <div className="flight-route">
-          {/* Departure */}
           <div>
             <strong className="text-foreground">{route.departure_icao}</strong>
 
@@ -163,16 +143,13 @@ export function FlightCard({
             )}
           </div>
 
-          {/* Flight path */}
           <div className="path">
             <Plane size={18} strokeWidth={1.7} />
             <i aria-hidden="true" />
           </div>
 
-          {/* Arrival */}
           <div>
             <strong className="text-foreground">{route.arrival_icao}</strong>
-
             <span title={route.arrival_name ?? "Arrival"}>
               {route.arrival_name || "Arrival"}
             </span>
@@ -199,7 +176,6 @@ export function FlightCard({
         </div>
       </div>
 
-      {/* Aircraft and flight information */}
       <div className="flex flex-wrap items-center gap-x-5 gap-y-3 border-y border-border py-3">
         <FlightDetail icon={<Plane size={14} />}>
           {route.aircraft_name}

@@ -106,12 +106,6 @@ class RecommendationEngine:
 
         rejected_examples = []
 
-        # --------------------------------------------------
-        # Route Discovery
-        # --------------------------------------------------
-
-        # Ask the existing engine for a larger shortlist.
-        # The RouteEngine caps the limit at 50.
         pool_size = min(
             50,
             max(request.limit * 5, request.limit),
@@ -160,10 +154,6 @@ class RecommendationEngine:
             },
         )
 
-        # --------------------------------------------------
-        # Aircraft Reference Loading
-        # --------------------------------------------------
-
         aircraft_ids = {
             route.aircraft_id
             for route in routes
@@ -177,10 +167,6 @@ class RecommendationEngine:
                 )
             ).all()
         }
-
-        # --------------------------------------------------
-        # Strict Aircraft Category Filtering
-        # --------------------------------------------------
 
         if (
             request.preferred_category
@@ -214,10 +200,6 @@ class RecommendationEngine:
             routes = retained
             event("FILTER", "After aircraft-category filter | remaining=%d", len(routes))
 
-        # --------------------------------------------------
-        # Supporting Engine Evaluations
-        # --------------------------------------------------
-
         route_dicts = [
             route.model_dump()
             for route in routes
@@ -248,10 +230,6 @@ class RecommendationEngine:
         )
 
         enriched = []
-
-        # --------------------------------------------------
-        # Route Validation and Scoring
-        # --------------------------------------------------
 
         event("EVALUATION", "Starting suitability/scoring loop | routes=%d", len(routes))
         for index, (route, operation, (
@@ -292,10 +270,6 @@ class RecommendationEngine:
                 else None
             )
 
-            # ----------------------------------------------
-            # Reference Data Validation
-            # ----------------------------------------------
-
             if (
                 aircraft is None
                 or dep is None
@@ -320,10 +294,6 @@ class RecommendationEngine:
                 )
                 skip(route, "MISSING_REFERENCE", f"missing={missing}")
                 continue
-
-            # ----------------------------------------------
-            # Aircraft and Airport Suitability
-            # ----------------------------------------------
 
             validation = self.airport_engine.validate_route(
                 aircraft,
@@ -387,10 +357,6 @@ class RecommendationEngine:
                 skip(route, "INDETERMINATE_VALIDATION", "; ".join(issue_descriptions))
                 continue
 
-            # ----------------------------------------------
-            # Real-World Service Filtering
-            # ----------------------------------------------
-
             verified_service = bool(
                 operation.verified_catalog_match
             )
@@ -419,9 +385,6 @@ class RecommendationEngine:
                 skip(route, "UNVERIFIED_REAL_WORLD_SERVICE")
                 continue
 
-            # ----------------------------------------------
-            # Flyability Filtering
-            # ----------------------------------------------
 
             flyability = route.flyability_score
 

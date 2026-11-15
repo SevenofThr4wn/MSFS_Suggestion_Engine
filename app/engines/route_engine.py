@@ -1,10 +1,9 @@
-from dataclasses import dataclass
-
 import time
 import logging
 
 from math import ceil
 
+from app.core.classes.route import DurationEstimate, RouteCandidate
 from app.core.logging import get_logger
 
 from app.db.repositories.route_catalog_repository import (
@@ -36,23 +35,6 @@ from app.schemas.route import (
 
 
 logger = get_logger("route_engine")
-
-
-@dataclass(frozen=True)
-class RouteCandidate:
-    departure: AirportRecord
-    arrival: AirportRecord
-    aircraft: Aircraft
-    route: RouteCatalogEntry | None = None
-
-@dataclass(frozen=True)
-class DurationEstimate:
-    """Estimated flight and block time for a route."""
-
-    air_time_min: int
-    block_time_min: int
-    cruise_distance_nm: float
-    source: str = "simplified_aircraft_performance"
 
 class RouteEngine:
     """
@@ -142,11 +124,6 @@ class RouteEngine:
             f" | {details}" if details else "",
         )
 
-    
-    # ========================================================
-    # Route Preference Scoring
-    # ========================================================
-
     @staticmethod
     def score_route(
         request: RouteRecommendationRequest,
@@ -199,10 +176,6 @@ class RouteEngine:
         breakdown: dict[str, float] = {}
         reasons: list[str] = []
 
-        # ----------------------------------------------------
-        # Aircraft Preference — 25 Points
-        # ----------------------------------------------------
-
         if request.preferred_category:
             aircraft_points = (
                 25.0
@@ -219,9 +192,6 @@ class RouteEngine:
                 "Matches preferred aircraft category"
             )
 
-        # ----------------------------------------------------
-        # Duration Preference — 30 Points
-        # ----------------------------------------------------
 
         duration_hours = duration_min / 60
 
@@ -252,10 +222,6 @@ class RouteEngine:
             2,
         )
 
-        # ----------------------------------------------------
-        # Airport Scenery Preference — 20 Points
-        # ----------------------------------------------------
-
         addon_count = sum([
             departure.has_addon_scenery,
             arrival.has_addon_scenery,
@@ -276,10 +242,6 @@ class RouteEngine:
                 f"{addon_count} airport(s) have add-on scenery"
             )
 
-        # ----------------------------------------------------
-        # Real-World Route Evidence — 25 Points
-        # ----------------------------------------------------
-
         realism_points = (
             25.0 if is_real_world_route else 0.0
         )
@@ -291,10 +253,6 @@ class RouteEngine:
                 "Route is recorded as a real-world service"
             )
 
-        # ----------------------------------------------------
-        # Final Preference Score
-        # ----------------------------------------------------
-
         total_score = round(
             sum(breakdown.values()),
             2,
@@ -305,10 +263,6 @@ class RouteEngine:
             breakdown,
             reasons,
         )
-
-    # --------------------------------------------------
-    # Aircraft selection
-    # --------------------------------------------------
 
     def _get_eligible_aircraft(
         self,
@@ -329,10 +283,6 @@ class RouteEngine:
             ]
 
         return aircraft_list
-
-    # --------------------------------------------------
-    # Airport helpers
-    # --------------------------------------------------
 
     def _normalize_code(self, code: str) -> str:
         normalized = code.strip().upper()
@@ -366,10 +316,6 @@ class RouteEngine:
                 options.require_scheduled_service
             ),
         )
-
-    # --------------------------------------------------
-    # Candidate generation
-    # --------------------------------------------------
 
     def generate_candidates(
         self,
@@ -476,11 +422,7 @@ class RouteEngine:
 
         return candidates
 
-    # --------------------------------------------------
-    # Geographic discovery
-    # --------------------------------------------------
-
-    
+ 
     def generate_geographic_candidates(
         self,
         request: RouteRecommendationRequest,
@@ -496,9 +438,6 @@ class RouteEngine:
         """
         started = time.perf_counter()
 
-        # ====================================================
-        # 1. Resolve Departure and Arrival
-        # ====================================================
 
         if not request.departure_code:
             raise ValueError(
@@ -531,10 +470,6 @@ class RouteEngine:
         candidates: list[RouteCandidate] = []
         seen: set[tuple[str, str, int]] = set()
 
-        # ----------------------------------------------------
-        # Discovery Counters
-        # ----------------------------------------------------
-
         aircraft_processed = 0
         destinations_checked = 0
         destinations_accepted = 0
@@ -547,19 +482,11 @@ class RouteEngine:
             f"max_candidates={request.max_candidates}"
         )
 
-        # ====================================================
-        # 2. Aircraft Discovery
-        # ====================================================
-
         for aircraft in aircraft_list:
             aircraft_started = time.perf_counter()
             aircraft_processed += 1
 
             speed = aircraft.cruise_speed_kts
-
-            # ------------------------------------------------
-            # Aircraft Speed Validation
-            # ------------------------------------------------
 
             if speed is None or speed <= 0:
                 self._discovery_skip(
@@ -570,10 +497,6 @@ class RouteEngine:
                     speed=speed,
                 )
                 continue
-
-            # ------------------------------------------------
-            # Departure Airport Suitability
-            # ------------------------------------------------
 
             departure_check = self.assess_airport(
                 origin,
@@ -609,10 +532,6 @@ class RouteEngine:
                 )
                 continue
 
-            # =================================================
-            # 3. Calculate Aircraft Distance Window
-            # =================================================
-
             min_distance = self.distance_for_block_time(
                 request.min_duration_hours * 60,
                 speed,
@@ -631,10 +550,6 @@ class RouteEngine:
             max_distance *= (
                 1 + self.DISTANCE_ALLOWANCE
             )
-
-            # ------------------------------------------------
-            # Aircraft Range Filtering
-            # ------------------------------------------------
 
             if aircraft.range_nm is not None:
                 if aircraft.range_nm <= 0:
@@ -663,10 +578,6 @@ class RouteEngine:
                     max_nm=round(max_distance, 1),
                 )
                 continue
-
-            # =================================================
-            # 4. Discover Destination Airports
-            # =================================================
 
             if requested_arrival is not None:
                 destinations = [requested_arrival]
@@ -699,10 +610,6 @@ class RouteEngine:
                 f"destinations={len(destinations)}"
             )
 
-            # =================================================
-            # 5. Evaluate Destination Airports
-            # =================================================
-
             aircraft_checked = 0
             aircraft_accepted = 0
 
@@ -721,10 +628,6 @@ class RouteEngine:
                     f"aircraft={aircraft.display_name}"
                 )
 
-                # --------------------------------------------
-                # Reject Same-Airport Routes
-                # --------------------------------------------
-
                 if origin.icao_code == destination.icao_code:
                     self._discovery_skip(
                         origin,
@@ -733,10 +636,6 @@ class RouteEngine:
                         "SAME_AIRPORT",
                     )
                     continue
-
-                # --------------------------------------------
-                # Airport Discovery Eligibility
-                # --------------------------------------------
 
                 if not self.airport_engine.is_eligible(
                     destination,
@@ -750,10 +649,6 @@ class RouteEngine:
                         mode=request.airport_mode,
                     )
                     continue
-
-                # --------------------------------------------
-                # Arrival Airport Suitability
-                # --------------------------------------------
 
                 arrival_check = self.assess_airport(
                     destination,
@@ -789,10 +684,6 @@ class RouteEngine:
                     )
                     continue
 
-                # --------------------------------------------
-                # Great-Circle Distance Validation
-                # --------------------------------------------
-
                 distance = self.geographic_engine.distance_nm(
                     origin.latitude,
                     origin.longitude,
@@ -814,10 +705,6 @@ class RouteEngine:
                     )
                     continue
 
-                # --------------------------------------------
-                # Duplicate Candidate Detection
-                # --------------------------------------------
-
                 candidate_key = (
                     origin.icao_code,
                     destination.icao_code,
@@ -834,10 +721,6 @@ class RouteEngine:
                     continue
 
                 seen.add(candidate_key)
-
-                # ============================================
-                # 6. Accept Candidate
-                # ============================================
 
                 candidates.append(
                     RouteCandidate(
@@ -859,10 +742,6 @@ class RouteEngine:
                     f"arrival_status={arrival_check.status}"
                 )
 
-                # --------------------------------------------
-                # Candidate Limit
-                # --------------------------------------------
-
                 if len(candidates) >= request.max_candidates:
                     elapsed_ms = (
                         time.perf_counter() - started
@@ -880,9 +759,6 @@ class RouteEngine:
 
                     return candidates
 
-            # =================================================
-            # 7. Aircraft Discovery Performance
-            # =================================================
 
             aircraft_ms = (
                 time.perf_counter() - aircraft_started
@@ -896,9 +772,6 @@ class RouteEngine:
                 f"accepted={aircraft_accepted}"
             )
 
-        # ====================================================
-        # 8. Final Performance Summary
-        # ====================================================
 
         elapsed_ms = (
             time.perf_counter() - started
@@ -916,9 +789,6 @@ class RouteEngine:
 
         return candidates
 
-    # --------------------------------------------------
-    # Distance and duration
-    # --------------------------------------------------
 
     def _calculate_distance(
         self,
@@ -972,9 +842,6 @@ class RouteEngine:
 
         return estimate.block_time_min, estimate.source
 
-    # --------------------------------------------------
-    # Real-world route metadata
-    # --------------------------------------------------
 
     @staticmethod
     def _get_real_world_metadata(
@@ -1015,9 +882,6 @@ class RouteEngine:
             route.flight_number,
         )
 
-    # --------------------------------------------------
-    # Candidate evaluation
-    # --------------------------------------------------
 
     def evaluate_candidate(
         self,
@@ -1043,10 +907,6 @@ class RouteEngine:
             f"aircraft={aircraft.display_name}"
         )
 
-        # ====================================================
-        # 1. Route Distance
-        # ====================================================
-
         distance, distance_source = self._calculate_distance(
             candidate
         )
@@ -1057,10 +917,6 @@ class RouteEngine:
                 "INVALID_DISTANCE",
                 distance_nm=distance,
             )
-
-        # ====================================================
-        # 2. Flight Duration
-        # ====================================================
 
         duration_result = self._calculate_duration(
             candidate,
@@ -1087,10 +943,6 @@ class RouteEngine:
                 min_h=request.min_duration_hours,
                 max_h=request.max_duration_hours,
             )
-
-        # ====================================================
-        # 3. Airport Suitability
-        # ====================================================
 
         departure_check = self.assess_airport(
             departure,
@@ -1122,10 +974,6 @@ class RouteEngine:
                     arrival_check
                 ),
             )
-
-        # ====================================================
-        # 4. Aircraft Suitability
-        # ====================================================
 
         aircraft_result = (
             self.aircraft_engine.evaluate_aircraft(
@@ -1201,10 +1049,6 @@ class RouteEngine:
                 minimum=request.min_flyability_score,
             )
 
-        # ====================================================
-        # 6. Real-World Route Metadata
-        # ====================================================
-
         (
             is_real_world_route,
             airline_name,
@@ -1221,9 +1065,6 @@ class RouteEngine:
                 "NO_REAL_WORLD_ROUTE_EVIDENCE",
             )
 
-        # ====================================================
-        # 7. Route Preference Scoring
-        # ====================================================
 
         score, breakdown, ranking_reasons = self.score_route(
             request=request,
@@ -1233,10 +1074,6 @@ class RouteEngine:
             duration_min=duration,
             is_real_world_route=is_real_world_route,
         )
-
-        # ====================================================
-        # 8. Reasons and Warnings
-        # ====================================================
 
         reasons = list(
             dict.fromkeys([
@@ -1260,9 +1097,6 @@ class RouteEngine:
 
         warnings = list(dict.fromkeys(warnings))
 
-        # ====================================================
-        # 9. Evaluation Logging
-        # ====================================================
 
         logger.debug(
             f"EVALUATE ACCEPT | "
@@ -1284,10 +1118,6 @@ class RouteEngine:
             f"reasons={reasons} "
             f"warnings={warnings}"
         )
-
-        # ====================================================
-        # 10. Final Recommendation
-        # ====================================================
 
         return RouteRecommendation(
             route_id=route.id if route else None,
@@ -1331,11 +1161,6 @@ class RouteEngine:
             ),
         )
 
-
-    
-    # --------------------------------------------------
-    # Flight Duration Estimation
-    # --------------------------------------------------
 
     @staticmethod
     def estimate_duration(
@@ -1439,10 +1264,6 @@ class RouteEngine:
                 2,
             ),
         )
-
-    # --------------------------------------------------
-    # Duration-to-Distance Conversion
-    # --------------------------------------------------
 
     @staticmethod
     def distance_for_block_time(
@@ -1582,15 +1403,12 @@ class RouteEngine:
         if not eligible_codes:
             return []
 
-        # Spread the search budget across origins.
         origin_limit = min(
             len(eligible_codes),
             request.max_airports,
             32,
         )
 
-        # Evenly sample the eligible network, avoiding
-        # a bias toward the first ICAO codes.
         origins = [
             eligible_codes[
                 min(
@@ -1672,10 +1490,6 @@ class RouteEngine:
             f"..{request.max_duration_hours}"
         )
 
-        # ====================================================
-        # Candidate Discovery
-        # ====================================================
-
         discovery_started = time.perf_counter()
 
         candidates = self.generate_candidates(request)
@@ -1691,10 +1505,6 @@ class RouteEngine:
             f"elapsed_ms={discovery_ms:.2f} "
             f"candidates={candidate_count}"
         )
-
-        # ====================================================
-        # Candidate Evaluation
-        # ====================================================
 
         evaluation_started = time.perf_counter()
 
@@ -1732,10 +1542,6 @@ class RouteEngine:
             f"accepted={eligible_count}"
         )
 
-        # ====================================================
-        # Ranking and Selection
-        # ====================================================
-
         ranking_started = time.perf_counter()
 
         suitability_priority = {
@@ -1754,10 +1560,6 @@ class RouteEngine:
                 result.aircraft_id,
             )
         )
-
-        # ----------------------------------------------------
-        # Route Diversity
-        # ----------------------------------------------------
 
         selected: list[RouteRecommendation] = []
 
@@ -1799,10 +1601,6 @@ class RouteEngine:
             time.perf_counter() - ranking_started
         ) * 1000
 
-        # ====================================================
-        # Final Recommendation Logging
-        # ====================================================
-
         for rank, item in enumerate(
             selected,
             start=1,
@@ -1815,10 +1613,6 @@ class RouteEngine:
                 f"flyability={item.flyability_score:.2f} "
                 f"preference={item.score:.2f}"
             )
-
-        # ====================================================
-        # Performance Summary
-        # ====================================================
 
         total_ms = (
             time.perf_counter() - started
@@ -1843,10 +1637,6 @@ class RouteEngine:
             f"eligible={eligible_count} "
             f"returned={returned_count}"
         )
-
-        # ====================================================
-        # Response
-        # ====================================================
 
         return RouteRecommendationResponse(
             mode=request.mode,

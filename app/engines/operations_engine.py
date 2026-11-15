@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
 from datetime import date
 
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.classes.operations import OperationsAssessment
 from app.core.logging import get_logger
 
 from app.schemas.schedule import (
@@ -24,25 +24,6 @@ except ImportError:
 
 
 logger = get_logger("operations_engine")
-
-
-# ============================================================
-# Operations Assessment
-# ============================================================
-
-@dataclass(frozen=True)
-class OperationsAssessment:
-    """Result of evaluating route realism."""
-
-    score: float | None
-    verified_catalog_match: bool
-    airline: str | None
-    flight_number: str | None
-    notes: tuple[str, ...]
-
-    def to_dict(self) -> dict:
-        return asdict(self)
-
 
 # ============================================================
 # Operations Engine

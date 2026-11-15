@@ -1,46 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
+from app.core.classes.validation import FlyabilityResult
 from app.db.models.aircraft import Aircraft
 from app.providers.airport_catalog import AirportRecord
 
 
-@dataclass(frozen=True)
-class FlyabilityResult:
-    score: float
-    status: str
-    breakdown: dict[str, float]
-    reasons: list[str] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
-    evidence_coverage: dict[str, bool] = field(
-        default_factory=dict
-    )
-    personal_feedback_available: bool = False
-
-
 class FlyabilityEngine:
-    """
-    Estimates how appealing a flight would be to experience
-    or fly again in Microsoft Flight Simulator.
-
-    This is NOT an aircraft safety or airport compatibility
-    engine. Rejections must be handled separately by the
-    existing aircraft/airport validation engines.
-
-    Score distribution:
-        Scenery:                 25
-        Approach experience:     20
-        Airport experience:      20
-        Route variety:           15
-        Aircraft enjoyment:      10
-        Personal replayability:  10
-
-    Total: 100
-
-    Unknown enjoyment factors receive neutral baseline
-    values and are explicitly identified as unverified.
-    """
 
     MAX_SCORE = 100.0
 
@@ -135,7 +100,6 @@ class FlyabilityEngine:
         departure: AirportRecord,
         arrival: AirportRecord,
         aircraft: Aircraft,
-        duration_min: int,
     ) -> FlyabilityResult:
 
         reasons: list[str] = []

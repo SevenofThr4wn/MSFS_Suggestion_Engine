@@ -20,7 +20,6 @@ import { RecommendationResponse } from "@/lib/types/recommendation";
 
 interface RecommendationResultsProps {
   response: RecommendationResponse | null;
-  aircraftPhotographyEnabled?: boolean;
   loading: boolean;
 }
 
@@ -169,7 +168,6 @@ function RecommendationLoading() {
 export function RecommendationResults({
   response,
   loading,
-  aircraftPhotographyEnabled = false,
 }: RecommendationResultsProps) {
   return (
     <section
@@ -298,7 +296,6 @@ export function RecommendationResults({
                   item={item}
                   index={index}
                   departureLocation={response.departure_location}
-                  aircraftPhotographyEnabled={aircraftPhotographyEnabled}
                 />
               ))}
             </div>

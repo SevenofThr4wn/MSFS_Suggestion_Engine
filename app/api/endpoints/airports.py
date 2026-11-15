@@ -34,12 +34,6 @@ router = APIRouter(
     tags=["Airport Engine"],
 )
 
-
-# ============================================================
-# Request Schemas
-# ============================================================
-
-
 class CompatibilityRequest(BaseModel):
     """Parameters required to evaluate flight compatibility."""
 
@@ -118,12 +112,6 @@ class PreferencesRequest(BaseModel):
         examples=[True],
     )
 
-
-# ============================================================
-# Response Schemas
-# ============================================================
-
-
 class AirportSearchResponse(BaseModel):
     """Paginated response containing matching airports."""
 
@@ -183,11 +171,6 @@ class AirportPreferencesResponse(BaseModel):
         ),
         examples=[True],
     )
-
-
-# ============================================================
-# Airport Search
-# ============================================================
 
 
 @router.get(
@@ -319,11 +302,6 @@ def search_airports(
     }
 
 
-# ============================================================
-# Flight Compatibility Evaluation
-# ============================================================
-
-
 @router.post(
     "/compatibility",
     response_model=dict[str, Any],
@@ -435,11 +413,6 @@ def evaluate_flight(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(exc),
         ) from exc
-
-
-# ============================================================
-# Airport Preferences
-# ============================================================
 
 
 @router.put(

@@ -16,11 +16,6 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { RecommendationRequest } from "@/lib/types/recommendation";
 
-interface AdvancedSettingsProps {
-  aircraftPhotographyEnabled: boolean;
-  onAircraftPhotographyChange: (enabled: boolean) => void;
-}
-
 type BooleanSetting =
   | "airport_filter.require_paved_runway"
   | "airport_filter.require_known_runway_data"
@@ -124,10 +119,7 @@ function NumberSettingField({ name, label, min, max }: NumberSettingProps) {
   );
 }
 
-export function AdvancedSettings({
-  aircraftPhotographyEnabled,
-  onAircraftPhotographyChange,
-}: AdvancedSettingsProps) {
+export function AdvancedSettings() {
   const { control } = useFormContext<RecommendationRequest>();
 
   return (
@@ -303,7 +295,6 @@ export function AdvancedSettings({
 
       <div className="divide-y divide-border/50">
         <SwitchSetting name="live_weather" label="Live METAR weather" />
-
         <SwitchSetting name="scenarios_enabled" label="Optional scenarios" />
 
         <SwitchSetting
@@ -330,28 +321,6 @@ export function AdvancedSettings({
           <p className="text-xs leading-relaxed text-muted-foreground">
             Customise how flight recommendations are displayed.
           </p>
-        </div>
-
-        <div className="flex items-center justify-between gap-4 py-3">
-          <div className="min-w-0 flex-1">
-            <label
-              htmlFor="aircraft-photography"
-              className="block cursor-pointer text-xs font-semibold text-foreground"
-            >
-              Aircraft photography
-            </label>
-
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Show aircraft photographs on recommendation cards. If unavailable,
-              use destination airport imagery. Disabled by default.
-            </p>
-          </div>
-
-          <Switch
-            id="aircraft-photography"
-            checked={aircraftPhotographyEnabled}
-            onCheckedChange={onAircraftPhotographyChange}
-          />
         </div>
       </div>
     </div>

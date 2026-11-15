@@ -35,11 +35,9 @@ import { Switch } from "@/components/ui/switch";
 
 import {
   Collapsible,
-  CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 
-import { AdvancedSettings } from "./advanced_settings";
 import { RecommendationRequest } from "@/lib/types/recommendation";
 
 const AIRCRAFT_CATEGORY_LABELS: Record<string, string> = {
@@ -65,14 +63,10 @@ const WEATHER_PREFERENCE_LABELS: Record<string, string> = {
 
 interface RecommendationFormProps {
   controller: RecommendationsController;
-  aircraftPhotographyEnabled: boolean;
-  onAircraftPhotographyChange: (enabled: boolean) => void;
 }
 
 export function RecommendationForm({
-  controller,
-  aircraftPhotographyEnabled,
-  onAircraftPhotographyChange,
+  controller
 }: RecommendationFormProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
@@ -518,13 +512,6 @@ export function RecommendationForm({
                 }`}
               />
             </CollapsibleTrigger>
-
-            <CollapsibleContent>
-              <AdvancedSettings
-                aircraftPhotographyEnabled={aircraftPhotographyEnabled}
-                onAircraftPhotographyChange={onAircraftPhotographyChange}
-              />
-            </CollapsibleContent>
           </Collapsible>
 
           {controller.error && (

@@ -4,12 +4,12 @@ import logging
 
 from bisect import bisect_left, bisect_right
 from collections import OrderedDict
-from dataclasses import dataclass
 from math import asin, atan2, cos, degrees, radians, sin, sqrt
 from threading import Lock
 from time import monotonic
 from typing import Any, ClassVar
 
+from app.core.classes.airports import _IndexedAirport, _OriginIndex
 from app.core.constants import (
     EARTH_RADIUS_KM,
     KM_PER_NAUTICAL_MILE,
@@ -22,27 +22,6 @@ from app.schemas.geographic_discovery import (
 
 
 logger = logging.getLogger("flightengine.geographic")
-
-
-@dataclass(frozen=True)
-class _IndexedAirport:
-    icao_code: str
-    iata_code: str | None
-    name: str
-    latitude: float
-    longitude: float
-    distance_nm: float
-
-
-@dataclass(frozen=True)
-class _OriginIndex:
-    provider: Any
-    latitude: float
-    longitude: float
-    created_at: float
-    distances: tuple[float, ...]
-    airports: tuple[_IndexedAirport, ...]
-
 
 class GeographicEngine:
     """

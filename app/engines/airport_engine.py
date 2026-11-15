@@ -3,47 +3,21 @@ from __future__ import annotations
 import csv
 
 from pathlib import Path
-from dataclasses import dataclass, asdict
-from typing import Literal
 
+from app.core.classes.airports import AirportAssessment, AirportSuitabilityResult, GateSuggestion, RunwayAssessment, SuitabilityProfile
+from app.core.classes.validation import ValidationIssue, ValidationOutcome
 from app.core.enums import SuitabilityStatus
 from app.db.models.aircraft import Aircraft
 from app.engines.aircraft_engine import AircraftEngine
 from app.providers.airport_catalog import AirportRecord
 from app.providers.runway_provider import RunwayData
-from app.schemas.aircraft import AircraftCheck, CheckStatus
+from app.schemas.aircraft import CheckStatus
 from app.schemas.route import AirportMode
 
 from app.core.consts.airports import AIRPORT_SIZE_RANK, MAIN_HUB_CODES
 from app.core.consts.runway import PAVED_SURFACE_CODES, UNPAVED_SURFACE_CODES
 
 
-Suitability = Literal[
-    "preliminary_pass",
-    "rejected",
-    "indeterminate",
-]
-
-
-@dataclass(frozen=True)
-class GateSuggestion:
-    """A candidate gate selected from local airport inventory."""
-
-    airport_icao: str
-    gate: str | None
-    status: str
-    source: str
-    reasons: tuple[str, ...]
-
-    def to_dict(self) -> dict:
-        return asdict(self)
-
-@dataclass(frozen=True)
-class SuitabilityProfile:
-    minimum_airport_size: str | None
-    minimum_runway_length_m: float
-    minimum_runway_width_m: float
-    require_paved_runway: bool = True
 
 
 DEFAULT_PROFILES = {
@@ -70,64 +44,6 @@ DEFAULT_PROFILES = {
     ),
 }
 
-
-@dataclass(frozen=True)
-class AirportSuitabilityResult:
-    airport_icao: str
-    aircraft_id: int
-    operation: str
-    status: SuitabilityStatus
-    selected_runway: RunwayData | None
-    reasons: tuple[str, ...]
-    warnings: tuple[str, ...]
-
-
-@dataclass(frozen=True)
-class RunwayAssessment:
-    runway: RunwayData
-    check: AircraftCheck
-
-
-@dataclass(frozen=True)
-class AirportAssessment:
-    airport: AirportRecord
-    operation: str
-    suitability: Suitability
-    selected_runway: RunwayAssessment | None
-    assessments: list[RunwayAssessment]
-    warnings: list[str]
-
-@dataclass(frozen=True)
-class ValidationIssue:
-    code: str
-    severity: str
-    airport_icao: str | None
-    message: str
-    observed: float | str | None = None
-    required: float | str | None = None
-    unit: str | None = None
-
-    def to_dict(self) -> dict:
-        return asdict(self)
-
-
-@dataclass(frozen=True)
-class ValidationOutcome:
-    status: str
-    issues: tuple[ValidationIssue, ...]
-    departure_runway: str | None
-    arrival_runway: str | None
-
-    def to_dict(self) -> dict:
-        return {
-            "status": self.status,
-            "issues": [
-                issue.to_dict()
-                for issue in self.issues
-            ],
-            "departure_runway": self.departure_runway,
-            "arrival_runway": self.arrival_runway,
-        }
 
 class AirportEngine:
     """

@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import logging
@@ -45,9 +44,6 @@ class SceneryNetworkEngine:
         owned_only: bool = True,
         max_distance_nm: float = 10000,
     ) -> list[dict]:
-        # --------------------------------------------------
-        # 1. Resolve installed airports
-        # --------------------------------------------------
 
         airports = {}
 
@@ -68,10 +64,6 @@ class SceneryNetworkEngine:
         if len(airports) < 2:
             return []
 
-        # --------------------------------------------------
-        # 2. Load aircraft
-        # --------------------------------------------------
-
         aircraft = self.repository.list_aircraft(
             owned_only=owned_only,
         )
@@ -90,10 +82,6 @@ class SceneryNetworkEngine:
             owned_only,
             include_plausible,
         )
-
-        # --------------------------------------------------
-        # 3. Load route catalog evidence
-        # --------------------------------------------------
 
         routes_by_pair = defaultdict(list)
 
@@ -119,10 +107,6 @@ class SceneryNetworkEngine:
 
             routes_by_pair[key].append(route)
 
-        # --------------------------------------------------
-        # 4. Build evaluation request
-        # --------------------------------------------------
-
         request = RouteRecommendationRequest(
             mode=RouteMode.DATABASE,
             min_duration_hours=0,
@@ -134,10 +118,6 @@ class SceneryNetworkEngine:
         )
 
         connections = []
-
-        # --------------------------------------------------
-        # 5. Evaluate installed airport pairs
-        # --------------------------------------------------
 
         for from_code, to_code in combinations(
             sorted(airports),
@@ -186,9 +166,6 @@ class SceneryNetworkEngine:
             ):
                 continue
 
-            # ----------------------------------------------
-            # 6. Generate aircraft candidates
-            # ----------------------------------------------
 
             candidates = []
 
@@ -254,10 +231,6 @@ class SceneryNetworkEngine:
                             )
                         )
 
-            # ----------------------------------------------
-            # 7. Evaluate candidates
-            # ----------------------------------------------
-
             evaluated = []
 
             for candidate in candidates:
@@ -287,17 +260,11 @@ class SceneryNetworkEngine:
                 len(evaluated),
             )
 
-            # Plausible routes must pass at least one
-            # preliminary aircraft evaluation.
             if (
                 classification == "plausible"
                 and not evaluated
             ):
                 continue
-
-            # ----------------------------------------------
-            # 8. Rank aircraft suggestions
-            # ----------------------------------------------
 
             evaluated.sort(
                 key=lambda result: (
@@ -333,10 +300,6 @@ class SceneryNetworkEngine:
                 if len(aircraft_suggestions) >= 5:
                     break
 
-            # ----------------------------------------------
-            # 9. Collect verified route metadata
-            # ----------------------------------------------
-
             directions = sorted({
                 (
                     route.departure_icao,
@@ -353,10 +316,6 @@ class SceneryNetworkEngine:
                     and route.airline.name
                 )
             })
-
-            # ----------------------------------------------
-            # 10. Build connection response
-            # ----------------------------------------------
 
             connections.append({
                 "id": f"{from_code}-{to_code}",
@@ -387,10 +346,6 @@ class SceneryNetworkEngine:
                     ]
                 ),
             })
-
-        # --------------------------------------------------
-        # 11. Sort connections
-        # --------------------------------------------------
 
         connections.sort(
             key=lambda connection: (

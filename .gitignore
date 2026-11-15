@@ -282,9 +282,7 @@ temp/
 *.swp
 *.swo
 
-# Python crash dumps
-core
-core.*
+
 
 # Node crash reports
 report.*.json

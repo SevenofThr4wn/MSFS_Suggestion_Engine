@@ -48,9 +48,6 @@ class ValidationEngine:
     ) -> ValidationOutcome:
         issues = []
 
-        # --------------------------------------------------
-        # Route Distance Validation
-        # --------------------------------------------------
 
         if distance_nm <= 0:
             issues.append(
@@ -62,10 +59,6 @@ class ValidationEngine:
                     observed=distance_nm,
                 )
             )
-
-        # --------------------------------------------------
-        # Aircraft Range Validation
-        # --------------------------------------------------
 
         nominal_range = getattr(
             aircraft,
@@ -99,10 +92,6 @@ class ValidationEngine:
                 )
             )
 
-        # --------------------------------------------------
-        # Airport and Runway Validation
-        # --------------------------------------------------
-
         selected = []
 
         for airport, operation in (
@@ -111,7 +100,6 @@ class ValidationEngine:
         ):
             code = airport.icao_code
 
-            # Airport closure status
             if getattr(airport, "is_closed", None) is True:
                 issues.append(
                     ValidationIssue(
@@ -132,7 +120,6 @@ class ValidationEngine:
                     )
                 )
 
-            # Aircraft reference performance
             reference = getattr(
                 aircraft,
                 (
@@ -156,7 +143,6 @@ class ValidationEngine:
                     )
                 )
 
-            # Aircraft category runway requirements
             profile_min = (
                 2500
                 if getattr(aircraft, "category", None) == "wide_body"
@@ -181,10 +167,6 @@ class ValidationEngine:
                     else 0
                 )
             )
-
-            # --------------------------------------------------
-            # Find Compatible Runways
-            # --------------------------------------------------
 
             candidates = []
             uncertain = False
@@ -253,10 +235,6 @@ class ValidationEngine:
                     continue
 
                 candidates.append(runway)
-
-            # --------------------------------------------------
-            # Runway Selection
-            # --------------------------------------------------
 
             if candidates:
                 chosen = max(
@@ -357,10 +335,6 @@ class ValidationEngine:
                             ),
                         )
                     )
-
-        # --------------------------------------------------
-        # Final Validation Status
-        # --------------------------------------------------
 
         status = (
             "rejected"

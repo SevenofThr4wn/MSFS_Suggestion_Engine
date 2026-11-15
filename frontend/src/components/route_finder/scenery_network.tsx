@@ -1104,155 +1104,245 @@ const query = useQuery({
             Selected connection panel
         ==================================================== */}
 
-        {view === "map" && selectedPair && (
-          <aside className="absolute bottom-5 right-5 top-40 z-20 flex w-[min(370px,calc(100%-40px))] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#111217]/95 shadow-2xl backdrop-blur-xl">
-            <div className="flex items-center justify-between border-b border-white/10 bg-[#14161c] px-4 py-3">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
-                  Selected connection
-                </p>
+        
+{view === "map" && selectedPair && (
+  <aside className="absolute bottom-5 right-5 top-40 z-20 flex w-[min(390px,calc(100%-40px))] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#111318]/95 shadow-2xl backdrop-blur-xl">
+    {/* Header */}
+    <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-5 py-4">
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+          Scenery network
+        </p>
+        <h2 className="mt-1 text-base font-semibold tracking-tight text-white">
+          Route details
+        </h2>
+      </div>
 
-                <p className="mt-1 font-mono text-xs font-medium text-amber-400">
-                  {selectedPair.from.icao}
-                  {" → "}
-                  {selectedPair.to.icao}
-                </p>
-              </div>
+      <button
+        type="button"
+        aria-label="Close connection details"
+        onClick={() => setSelected(null)}
+        className="flex size-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-zinc-400 transition hover:bg-white/10 hover:text-white"
+      >
+        <X className="size-4" />
+      </button>
+    </div>
 
-              <div className="mt-5 space-y-3 rounded-xl border border-white/10 bg-white/5 p-4 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">Classification</span>
+    {/* Scrollable content */}
+    <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5">
+      {/* Route overview */}
+      <div className="rounded-xl border border-white/10 bg-[#1b1e26] p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="font-mono text-2xl font-bold tracking-tight text-white">
+              {selectedPair.from.icao}
+            </p>
+            <p className="mt-1 truncate text-xs text-zinc-400">
+              {selectedPair.from.city ?? selectedPair.from.name}
+            </p>
+          </div>
 
-                  <span className="font-medium text-zinc-200">
-                    {selectedPair.classification === "verified"
-                      ? "Verified catalog route"
-                      : "Plausible connection"}
-                  </span>
-                </div>
+          <div className="flex shrink-0 flex-col items-center gap-1">
+            <span className="text-xl text-amber-400">→</span>
+            <span className="text-[10px] text-zinc-500">
+              Connection
+            </span>
+          </div>
 
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">Distance</span>
+          <div className="min-w-0 flex-1 text-right">
+            <p className="font-mono text-2xl font-bold tracking-tight text-white">
+              {selectedPair.to.icao}
+            </p>
+            <p className="mt-1 truncate text-xs text-zinc-400">
+              {selectedPair.to.city ?? selectedPair.to.name}
+            </p>
+          </div>
+        </div>
 
-                  <span className="font-mono text-zinc-200">
-                    {selectedPair.distance_nm.toLocaleString()} NM
-                  </span>
-                </div>
+        <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3">
+          <span className="text-xs text-zinc-500">
+            Classification
+          </span>
 
-                <div>
-                  <p className="mb-2 text-zinc-500">Airlines</p>
+          <span
+            className={[
+              "rounded-full border px-2.5 py-1 text-[11px] font-medium",
+              selectedPair.classification === "verified"
+                ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
+                : "border-violet-400/20 bg-violet-400/10 text-violet-300",
+            ].join(" ")}
+          >
+            {selectedPair.classification === "verified"
+              ? "Verified catalog route"
+              : "Plausible connection"}
+          </span>
+        </div>
+      </div>
 
-                  <p className="text-zinc-200">
-                    {selectedPair.airlines.length
-                      ? selectedPair.airlines.join(", ")
-                      : "No verified airline assignment"}
-                  </p>
-                </div>
+      {/* Metrics */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-xl border border-white/10 bg-[#1b1e26] p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+            Distance
+          </p>
 
-                <div>
-                  <p className="mb-2 text-zinc-500">Compatible aircraft</p>
+          <p className="mt-2 font-mono text-xl font-semibold tabular-nums text-white">
+            {Math.round(selectedPair.distance_nm).toLocaleString()} NM
+          </p>
 
-                  {selectedPair.aircraft.length ? (
-                    <div className="space-y-2">
-                      {selectedPair.aircraft.map((aircraft) => (
-                        <div
-                          key={aircraft.id}
-                          className="flex justify-between gap-3"
-                        >
-                          <span>{aircraft.name}</span>
-                          <span className="text-zinc-500">
-                            {Math.round((aircraft.duration_min / 60) * 10) / 10}
-                            h
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-zinc-500">
-                      No compatible aircraft established.
-                    </p>
-                  )}
-                </div>
-              </div>
+          <p className="mt-1 text-[11px] text-zinc-500">
+            Nautical miles
+          </p>
+        </div>
 
-              <button
-                type="button"
-                aria-label="Close connection details"
-                onClick={() => setSelected(null)}
-                className="flex size-8 items-center justify-center rounded-lg border border-white/10 text-zinc-400 hover:bg-white/10 hover:text-white"
+        <div className="rounded-xl border border-white/10 bg-[#1b1e26] p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+            Est. flight time
+          </p>
+
+          {selectedPair.aircraft.length > 0 ? (
+            <>
+              <p className="mt-2 font-mono text-xl font-semibold tabular-nums text-white">
+                {Math.floor(
+                  selectedPair.aircraft[0].duration_min / 60,
+                )}
+                h{" "}
+                {String(
+                  Math.round(
+                    selectedPair.aircraft[0].duration_min % 60,
+                  ),
+                ).padStart(2, "0")}
+                m
+              </p>
+
+              <p
+                className="mt-1 truncate text-[11px] text-zinc-500"
+                title={selectedPair.aircraft[0].name}
               >
-                <X className="size-4" />
-              </button>
-            </div>
+                {selectedPair.aircraft[0].name}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="mt-2 text-xl font-semibold text-zinc-500">
+                —
+              </p>
+              <p className="mt-1 text-[11px] text-zinc-500">
+                No estimate
+              </p>
+            </>
+          )}
+        </div>
+      </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
-              <div className="flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="font-mono text-2xl font-bold text-white">
-                    {selectedPair.from.icao}
+      {/* Aircraft */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-zinc-200">
+            Aircraft suggestions
+          </h3>
+
+          <span className="text-[11px] text-zinc-500">
+            {selectedPair.aircraft.length} found
+          </span>
+        </div>
+
+        {selectedPair.aircraft.length > 0 ? (
+          <div className="space-y-2">
+            {selectedPair.aircraft.map((aircraft) => (
+              <div
+                key={aircraft.id}
+                className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#1b1e26] p-3"
+              >
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-violet-400/10 text-lg text-violet-300">
+                  ✈
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-semibold text-zinc-200">
+                    {aircraft.name}
                   </p>
 
-                  <p className="mt-1 truncate text-xs text-zinc-500">
-                    {selectedPair.from.name}
+                  <p className="mt-1 text-[11px] text-zinc-500">
+                    {aircraft.icao ?? "Aircraft"}{" "}
                   </p>
                 </div>
 
-                <span className="shrink-0 text-lg text-amber-400">→</span>
-
-                <div className="min-w-0 text-right">
-                  <p className="font-mono text-2xl font-bold text-white">
-                    {selectedPair.to.icao}
-                  </p>
-
-                  <p className="mt-1 truncate text-xs text-zinc-500">
-                    {selectedPair.to.name}
-                  </p>
-                </div>
+                <span className="shrink-0 font-mono text-xs tabular-nums text-zinc-400">
+                  {(aircraft.duration_min / 60).toFixed(1)}h
+                </span>
               </div>
-
-              <div className="mt-6 rounded-xl border border-white/10 bg-white/5 px-4 py-4">
-                <p className="text-xs font-medium text-zinc-300">
-                  Installed scenery
-                </p>
-
-                <p className="mt-2 text-xs leading-5 text-zinc-500">
-                  Both airports were detected in your installed MSFS scenery
-                  inventory. This connection does not imply scheduled airline
-                  service or aircraft compatibility.
-                </p>
-              </div>
-
-              <div className="mt-6 space-y-4 text-xs">
-                <div className="flex items-start justify-between gap-3">
-                  <span className="text-zinc-500">Departure</span>
-
-                  <span className="text-right text-zinc-300">
-                    {selectedPair.from.city ?? selectedPair.from.name}
-                  </span>
-                </div>
-
-                <div className="border-t border-white/10" />
-
-                <div className="flex items-start justify-between gap-3">
-                  <span className="text-zinc-500">Arrival</span>
-
-                  <span className="text-right text-zinc-300">
-                    {selectedPair.to.city ?? selectedPair.to.name}
-                  </span>
-                </div>
-
-                <div className="border-t border-white/10" />
-
-                <div className="flex items-start justify-between gap-3">
-                  <span className="text-zinc-500">Connection type</span>
-
-                  <span className="text-right text-zinc-300">
-                    Possible airport pair
-                  </span>
-                </div>
-              </div>
-            </div>
-          </aside>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-white/10 bg-[#1b1e26] p-4 text-xs leading-5 text-zinc-500">
+            No aircraft suggestions are available for this connection.
+          </div>
         )}
+      </section>
+
+      {/* Airline information */}
+      {selectedPair.airlines.length > 0 && (
+        <section>
+          <h3 className="mb-3 text-sm font-semibold text-zinc-200">
+            Catalog airlines
+          </h3>
+
+          <div className="rounded-xl border border-white/10 bg-[#1b1e26] p-4">
+            <div className="flex flex-wrap gap-2">
+              {selectedPair.airlines.map((airline) => (
+                <span
+                  key={airline}
+                  className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-zinc-300"
+                >
+                  {airline}
+                </span>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Verification */}
+      <section className="rounded-xl border border-white/10 bg-[#1b1e26] p-4">
+        <div className="flex items-center gap-2">
+          <AlertCircle className="size-4 text-violet-300" />
+
+          <h3 className="text-xs font-semibold text-zinc-200">
+            Route verification
+          </h3>
+        </div>
+
+        <p className="mt-3 text-xs leading-5 text-zinc-400">
+          {selectedPair.classification === "verified"
+            ? "This connection has real-world route evidence in your route catalog. Aircraft suitability is assessed separately."
+            : "Both airports were detected in your installed MSFS scenery inventory. This is a plausible airport pair, not a confirmed scheduled airline service."}
+        </p>
+
+        {selectedPair.reasons.length > 0 && (
+          <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
+            {selectedPair.reasons.map((reason, index) => (
+              <p
+                key={`${index}-${reason}`}
+                className="text-[11px] leading-5 text-zinc-500"
+              >
+                {reason}
+              </p>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+
+    {/* Footer */}
+    <div className="shrink-0 border-t border-white/10 bg-[#14161c] px-5 py-3">
+      <p className="text-center text-[10px] text-zinc-500">
+        FlightEngine · Installed scenery network
+      </p>
+    </div>
+  </aside>
+)}
+
 
         {/* Empty state */}
 
